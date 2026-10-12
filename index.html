@@ -1,1328 +1,1147 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  Heart,
-  Calendar,
-  MapPin,
-  Clock,
-  Sparkles,
-  Music,
-  Volume2,
-  VolumeX,
-  Share2,
-  CheckCircle2,
-  Lock,
-  Unlock,
-  ChevronRight,
-  ChevronLeft,
-  X,
-  Send,
-  UserCheck,
-  Award,
-  Crown,
-  Maximize2,
-  Settings,
-  Download,
-  Copy,
-  Check,
-  Edit3,
-  Menu,
-  ExternalLink,
-  Info,
-  Gift
-} from 'lucide-react';
-
-const DEFAULT_CONFIG = {
-  groomName: "ALIDUNKWU EMEKE",
-  brideName: "ALABI ROSEMARY",
-  headline: "Two Hearts. One Destiny. Forever Begins Here.",
-  subtext: "Join us on a beautiful journey of love, tradition, and a lifetime of togetherness in Delta State, Nigeria.",
-  weddingDate: "2026-11-28T10:00:00",
-  venueName: "The Grand Royal Imperial Hall",
-  venueAddress: "Asaba-Ebu Expressway, Asaba, Delta State, Nigeria",
-  googleMapsUrl: "https://maps.google.com/?q=Asaba+Delta+State+Nigeria",
-  dressCode: "Royal Emerald & Champagne Gold - Traditional & Formal Elegance",
-  colors: {
-    primary: "#123D32", // Emerald Green
-    accent: "#D4AF7A",  // Champagne Gold
-    bg: "#FFF9F0",      // Warm Ivory
-    blush: "#EAD2CB",   // Soft Blush
-    dark: "#252321"     // Charcoal
-  }
-};
-
-class AudioSynthesizer {
-  constructor() {
-    this.ctx = null;
-    this.isPlaying = false;
-    this.interval = null;
-  }
-
-  init() {
-    if (!this.ctx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new AudioContext();
-    }
-  }
-
-  start() {
-    this.init();
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
-    }
-    this.isPlaying = true;
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALIDUNKWU EMEKE & ALABI ROSEMARY — Royal Wedding Celebration</title>
     
-    // Romantic arpeggio sequence in F major / D minor pentatonic
-    const notes = [349.23, 440.00, 523.25, 659.25, 698.46, 880.00]; // F4, A4, C5, E5, F5, A5
-    let index = 0;
-
-    this.interval = setInterval(() => {
-      if (!this.isPlaying) return;
-      
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(notes[index % notes.length], this.ctx.currentTime);
-      
-      gain.gain.setValueAtTime(0.01, this.ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.08, this.ctx.currentTime + 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 2.5);
-      
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      
-      osc.start();
-      osc.stop(this.ctx.currentTime + 2.6);
-      
-      index++;
-    }, 800);
-  }
-
-  stop() {
-    this.isPlaying = false;
-    if (this.interval) clearInterval(this.interval);
-  }
-
-  toggle() {
-    if (this.isPlaying) {
-      this.stop();
-    } else {
-      this.start();
-    }
-    return this.isPlaying;
-  }
-}
-
-const audioSynth = new AudioSynthesizer();
-
-export default function App() {
-  // Configuration State
-  const [config, setConfig] = useState(() => {
-    const saved = localStorage.getItem('wedding_config');
-    return saved ? JSON.parse(saved) : DEFAULT_CONFIG;
-  });
-
-  // UI Flow States
-  const [activeSection, setActiveSection] = useState('hero');
-  const [isPlayingMusic, setIsPlayingMusic] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState(null);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
-
-  // Discovery Game States
-  const [gameStarted, setGameStarted] = useState(false);
-  const [gameStage, setGameStage] = useState(1); // 1: Unscramble, 2: Calendar, 3: Colors, 4: Venue, 5: Invitation Unlocked
-  const [unscrambleSolved, setUnscrambleSolved] = useState(false);
-  const [selectedDateGuess, setSelectedDateGuess] = useState('');
-  const [colorMatchScore, setColorMatchScore] = useState(0);
-  const [matchedColors, setMatchedColors] = useState([]);
-  const [venueClueSolved, setVenueClueSolved] = useState(false);
-  const [venueAnswer, setVenueAnswer] = useState('');
-
-  // Unscramble Tile Game State
-  const targetLetters = "EMEKEROSEMARY".split('');
-  const [shuffledTiles, setShuffledTiles] = useState([]);
-  const [placedTiles, setPlacedTiles] = useState([]);
-
-  // Countdown State
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-
-  // Lightbox State
-  const [activeImageIndex, setActiveImageIndex] = useState(null);
-
-  // RSVP Form State
-  const [rsvpData, setRsvpData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    status: 'Attending',
-    guests: 1,
-    dietary: '',
-    song: ''
-  });
-  const [rsvpSubmissions, setRsvpSubmissions] = useState(() => {
-    const saved = localStorage.getItem('wedding_rsvps');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, name: "Chief & Lolo Chukwuma", guests: 2, status: "Attending", date: "2026-10-01" },
-      { id: 2, name: "Dr. Amaka Obi", guests: 1, status: "Attending", date: "2026-10-05" }
-    ];
-  });
-  const [rsvpSuccess, setRsvpSuccess] = useState(false);
-
-  // Guestbook State
-  const [guestMessages, setGuestMessages] = useState(() => {
-    const saved = localStorage.getItem('wedding_guestbook');
-    return saved ? JSON.parse(saved) : [
-      { id: 1, name: "Uncle David & Family", text: "Wishing Emeke and Rosemary a blissful marriage filled with joy and abundant prosperity!", likes: 12, time: "2 days ago" },
-      { id: 2, name: "Blessing Nkechi", text: "Congratulations to the most elegant couple! Can't wait to dance at the reception in Delta State!", likes: 8, time: "Yesterday" }
-    ];
-  });
-  const [newMessage, setNewMessage] = useState({ name: '', text: '' });
-
-  // Share Modal State
-  const [shareModalOpen, setShareModalOpen] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
-
-  useEffect(() => {
-    // Shuffle tiles for Stage 1 Name Challenge
-    const tiles = "EMEKEROSEMARY".split('');
-    for (let i = tiles.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
-    }
-    setShuffledTiles(tiles.map((letter, id) => ({ id, letter })));
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('wedding_config', JSON.stringify(config));
-  }, [config]);
-
-  useEffect(() => {
-    localStorage.setItem('wedding_rsvps', JSON.stringify(rsvpSubmissions));
-  }, [rsvpSubmissions]);
-
-  useEffect(() => {
-    localStorage.setItem('wedding_guestbook', JSON.stringify(guestMessages));
-  }, [guestMessages]);
-
-  useEffect(() => {
-    const target = new Date(config.weddingDate).getTime();
-    const interval = setInterval(() => {
-      const now = new Date().getTime();
-      const difference = target - now;
-
-      if (difference > 0) {
-        setTimeLeft({
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60)
-        });
-      } else {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [config.weddingDate]);
-
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
-  const handleMusicToggle = () => {
-    const playing = audioSynth.toggle();
-    setIsPlayingMusic(playing);
-    showToast(playing ? "Romantic Background Music Playing" : "Music Paused");
-  };
-
-  const handleTileClick = (tile) => {
-    if (placedTiles.length < targetLetters.length) {
-      setPlacedTiles([...placedTiles, tile]);
-      setShuffledTiles(shuffledTiles.filter(t => t.id !== tile.id));
-
-      const newPlaced = [...placedTiles, tile];
-      const constructed = newPlaced.map(t => t.letter).join('');
-      if (constructed === "EMEKEROSEMARY") {
-        setUnscrambleSolved(true);
-        showToast("Brilliant! You unlocked the couple's names!");
-      }
-    }
-  };
-
-  const handleResetTiles = () => {
-    const tiles = "EMEKEROSEMARY".split('');
-    for (let i = tiles.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
-    }
-    setShuffledTiles(tiles.map((letter, id) => ({ id, letter })));
-    setPlacedTiles([]);
-    setUnscrambleSolved(false);
-  };
-
-  const handleColorPick = (hex) => {
-    if (!matchedColors.includes(hex)) {
-      const next = [...matchedColors, hex];
-      setMatchedColors(next);
-      if (next.length >= 3) {
-        showToast("Perfect! Official Color Palette Unlocked!");
-      }
-    }
-  };
-
-  const handleVenueClueCheck = (e) => {
-    e.preventDefault();
-    if (venueAnswer.trim().toLowerCase().includes('delta') || venueAnswer.trim().toLowerCase().includes('asaba')) {
-      setVenueClueSolved(true);
-      showToast("Correct! Location Unlocked: Delta State, Nigeria!");
-    } else {
-      showToast("Hint: Think of the Big Heart of the Nation or Asaba!");
-    }
-  };
-
-  const skipGame = () => {
-    setGameStarted(true);
-    setGameStage(5);
-    showToast("Directly Unlocked Full Wedding Invitation!");
-  };
-
-  const handleRSVPSubmit = (e) => {
-    e.preventDefault();
-    if (!rsvpData.name || !rsvpData.email) {
-      showToast("Please fill in your name and email.");
-      return;
-    }
-    const newEntry = {
-      id: Date.now(),
-      name: rsvpData.name,
-      guests: rsvpData.guests,
-      status: rsvpData.status,
-      date: new Date().toISOString().split('T')[0]
-    };
-    setRsvpSubmissions([newEntry, ...rsvpSubmissions]);
-    setRsvpSuccess(true);
-    showToast("RSVP Successfully Recorded! We look forward to celebrating with you.");
-  };
-
-  const handleAddGuestMessage = (e) => {
-    e.preventDefault();
-    if (!newMessage.name || !newMessage.text) {
-      showToast("Please enter your name and heartfelt message.");
-      return;
-    }
-    const msgObj = {
-      id: Date.now(),
-      name: newMessage.name,
-      text: newMessage.text,
-      likes: 1,
-      time: "Just now"
-    };
-    setGuestMessages([msgObj, ...guestMessages]);
-    setNewMessage({ name: '', text: '' });
-    showToast("Warm wishes posted to the live Guestbook!");
-  };
-
-  const handleLikeMessage = (id) => {
-    setGuestMessages(guestMessages.map(m => m.id === id ? { ...m, likes: m.likes + 1 } : m));
-  };
-
-  const copyShareLink = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-    showToast("Wedding invitation link copied to clipboard!");
-  };
-
-  const galleryImages = [
-    {
-      url: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200",
-      title: "Royal Traditional Elegance",
-      category: "Traditional"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1200",
-      title: "Celebratory Moments",
-      category: "Moments"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1200",
-      title: "Romantic Pre-Wedding Session",
-      category: "Pre-Wedding"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1532712938310-34cb3982ef74?auto=format&fit=crop&q=80&w=1200",
-      title: "Champagne Gold Detail",
-      category: "Attire"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=1200",
-      title: "Floral & Decor Splendor",
-      category: "Moments"
-    },
-    {
-      url: "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&q=80&w=1200",
-      title: "Bridal Accessories & Coral Beads",
-      category: "Attire"
-    }
-  ];
-
-  return (
-    <div className="min-h-screen font-sans text-[#252321] bg-[#FFF9F0] selection:bg-[#D4AF7A] selection:text-white relative overflow-x-hidden">
-      
-      {/* Toast Notification Floating Pill */}
-      {toastMessage && (
-        <div className="fixed top-20 right-4 z-50 bg-[#123D32] text-[#D4AF7A] border border-[#D4AF7A]/40 px-5 py-3 rounded-full shadow-2xl flex items-center space-x-3 text-sm animate-bounce">
-          <Sparkles className="w-4 h-4 text-[#D4AF7A]" />
-          <span className="font-medium">{toastMessage}</span>
-        </div>
-      )}
-
-      {/* Floating Audio Control & Admin Toggle Buttons */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col space-y-3">
-        <button
-          onClick={handleMusicToggle}
-          className="p-3.5 bg-[#123D32] text-[#D4AF7A] border border-[#D4AF7A]/60 rounded-full shadow-2xl hover:scale-110 transition-transform duration-300 flex items-center justify-center group"
-          title="Toggle Background Music"
-        >
-          {isPlayingMusic ? <Volume2 className="w-5 h-5 animate-pulse" /> : <VolumeX className="w-5 h-5 opacity-80" />}
-        </button>
-        <button
-          onClick={() => setIsAdminOpen(true)}
-          className="p-3.5 bg-[#D4AF7A] text-[#123D32] rounded-full shadow-2xl hover:scale-110 transition-transform duration-300 flex items-center justify-center"
-          title="Open Admin Control Panel"
-        >
-          <Settings className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Sticky Luxury Navigation Bar */}
-      <nav className="sticky top-0 z-40 bg-[#123D32]/95 backdrop-blur-md border-b border-[#D4AF7A]/30 text-[#FFF9F0]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            <a href="#hero" className="flex items-center space-x-2 font-serif text-lg sm:text-xl tracking-wider text-[#D4AF7A]">
-              <Crown className="w-6 h-6 text-[#D4AF7A]" />
-              <span className="font-bold">{config.groomName.split(' ')[0]} & {config.brideName.split(' ')[0]}</span>
-            </a>
-
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center space-x-8 text-xs uppercase tracking-widest font-semibold">
-              <a href="#discovery" className="hover:text-[#D4AF7A] transition-colors">The Invitation</a>
-              <a href="#story" className="hover:text-[#D4AF7A] transition-colors">Our Story</a>
-              <a href="#couple" className="hover:text-[#D4AF7A] transition-colors">The Couple</a>
-              <a href="#programme" className="hover:text-[#D4AF7A] transition-colors">Programme</a>
-              <a href="#gallery" className="hover:text-[#D4AF7A] transition-colors">Gallery</a>
-              <a href="#rsvp" className="bg-[#D4AF7A] text-[#123D32] px-5 py-2.5 rounded-full hover:bg-white transition-all transform hover:-translate-y-0.5 shadow-md">RSVP Now</a>
-            </div>
-
-            {/* Mobile Hamburger Toggle */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden text-[#D4AF7A] p-2 focus:outline-none"
-            >
-              {mobileMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Dropdown Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-[#123D32] border-b border-[#D4AF7A]/30 px-6 py-6 space-y-4 text-center font-serif text-sm tracking-wider">
-            <a href="#discovery" onClick={() => setMobileMenuOpen(false)} className="block text-[#FFF9F0] py-2 border-b border-[#FFF9F0]/10">The Invitation</a>
-            <a href="#story" onClick={() => setMobileMenuOpen(false)} className="block text-[#FFF9F0] py-2 border-b border-[#FFF9F0]/10">Our Story</a>
-            <a href="#couple" onClick={() => setMobileMenuOpen(false)} className="block text-[#FFF9F0] py-2 border-b border-[#FFF9F0]/10">The Couple</a>
-            <a href="#programme" onClick={() => setMobileMenuOpen(false)} className="block text-[#FFF9F0] py-2 border-b border-[#FFF9F0]/10">Programme</a>
-            <a href="#gallery" onClick={() => setMobileMenuOpen(false)} className="block text-[#FFF9F0] py-2 border-b border-[#FFF9F0]/10">Gallery</a>
-            <a href="#rsvp" onClick={() => setMobileMenuOpen(false)} className="inline-block bg-[#D4AF7A] text-[#123D32] px-8 py-3 rounded-full font-sans font-bold text-xs uppercase tracking-widest mt-2">RSVP Now</a>
-          </div>
-        )}
-      </nav>
-
-      {}
-      <section id="hero" className="relative min-h-[92vh] flex items-center justify-center overflow-hidden bg-[#123D32] text-[#FFF9F0] px-4 py-16">
-        {/* Animated Gold Sparkle Dust overlay */}
-        <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#D4AF7A_1px,transparent_1px)] [background-size:24px_24px] animate-pulse"></div>
-
-        {/* Decorative Golden Corner Vignettes */}
-        <div className="absolute top-8 left-8 w-16 h-16 border-t-2 border-l-2 border-[#D4AF7A]/50 pointer-events-none hidden sm:block"></div>
-        <div className="absolute bottom-8 right-8 w-16 h-16 border-b-2 border-r-2 border-[#D4AF7A]/50 pointer-events-none hidden sm:block"></div>
-
-        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8">
-          <div className="inline-flex items-center space-x-3 px-4 py-1.5 rounded-full border border-[#D4AF7A]/40 bg-[#D4AF7A]/10 text-[#D4AF7A] text-xs sm:text-sm tracking-widest uppercase">
-            <Crown className="w-4 h-4" />
-            <span>Royal Wedding Celebration • Delta State, Nigeria</span>
-          </div>
-
-          <div className="space-y-4">
-            <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl font-extrabold text-[#D4AF7A] tracking-tight leading-tight">
-              {config.groomName}
-            </h1>
-            <p className="font-serif italic text-2xl sm:text-3xl text-[#EAD2CB] font-light">Weds</p>
-            <h1 className="font-serif text-4xl sm:text-6xl lg:text-7xl font-extrabold text-[#D4AF7A] tracking-tight leading-tight">
-              {config.brideName}
-            </h1>
-          </div>
-
-          <p className="font-serif text-xl sm:text-2xl text-[#FFF9F0]/90 italic max-w-2xl mx-auto leading-relaxed">
-            "{config.headline}"
-          </p>
-
-          <p className="text-sm sm:text-base text-[#FFF9F0]/75 max-w-xl mx-auto font-light leading-relaxed">
-            {config.subtext}
-          </p>
-
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
-              href="#discovery"
-              onClick={() => { setGameStarted(true); setGameStage(1); }}
-              className="w-full sm:w-auto px-8 py-4 bg-[#D4AF7A] text-[#123D32] font-bold rounded-full text-sm uppercase tracking-widest hover:bg-white transition-all duration-300 shadow-xl flex items-center justify-center space-x-2 group"
-            >
-              <span>Discover Our Wedding</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </a>
-            <button
-              onClick={skipGame}
-              className="w-full sm:w-auto px-8 py-4 border border-[#D4AF7A]/50 text-[#FFF9F0] font-semibold rounded-full text-sm uppercase tracking-widest hover:bg-[#D4AF7A]/10 transition-all duration-300"
-            >
-              Skip to Invitation
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {}
-      <section id="discovery" className="py-20 px-4 max-w-5xl mx-auto">
-        <div className="text-center mb-12 space-y-3">
-          <span className="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">Interactive Discovery Experience</span>
-          <h2 className="font-serif text-3xl sm:text-5xl font-bold text-[#123D32]">The Journey to Forever</h2>
-          <div className="w-24 h-1 bg-[#D4AF7A] mx-auto rounded-full"></div>
-        </div>
-
-        {/* Game Progress Indicator Bar */}
-        <div className="bg-white p-6 rounded-2xl shadow-xl border border-[#D4AF7A]/30 mb-10">
-          <div className="flex justify-between items-center text-xs sm:text-sm font-semibold text-[#123D32] mb-3">
-            <span>Progress: Stage {gameStage} of 5</span>
-            <span className="text-[#D4AF7A]">{gameStage === 5 ? "Unlocked!" : `${(gameStage - 1) * 25}% Completed`}</span>
-          </div>
-          <div className="w-full bg-[#FFF9F0] h-3 rounded-full overflow-hidden border border-[#D4AF7A]/20">
-            <div
-              className="bg-[#123D32] h-full transition-all duration-500 rounded-full"
-              style={{ width: `${gameStage * 20}%` }}
-            ></div>
-          </div>
-          <div className="flex justify-between text-[11px] text-gray-500 mt-2 font-medium">
-            <span>1. Names</span>
-            <span>2. Date</span>
-            <span>3. Palette</span>
-            <span>4. Venue</span>
-            <span>5. Invitation</span>
-          </div>
-        </div>
-
-        {/* STAGE 1: Couple's Name Unscramble Tile Game */}
-        {gameStage === 1 && (
-          <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-2xl border border-[#D4AF7A]/30 text-center space-y-6">
-            <div className="inline-block p-3 bg-[#FFF9F0] rounded-full text-[#123D32]">
-              <Lock className="w-8 h-8" />
-            </div>
-            <h3 className="font-serif text-2xl font-bold text-[#123D32]">Stage 1: Unlock the Couple's Names</h3>
-            <p className="text-sm text-gray-600 max-w-md mx-auto">
-              Click the letter tiles below to unscramble and spell out the couple's names: <strong>EMEKEROSEMARY</strong>
-            </p>
-
-            {/* Target Slots */}
-            <div className="flex flex-wrap justify-center gap-2 min-h-[50px] p-4 bg-[#FFF9F0] rounded-xl border border-[#D4AF7A]/30">
-              {placedTiles.map((tile, idx) => (
-                <span key={idx} className="w-10 h-12 flex items-center justify-center bg-[#123D32] text-[#D4AF7A] font-bold text-lg rounded-lg shadow-md">
-                  {tile.letter}
-                </span>
-              ))}
-              {Array.from({ length: targetLetters.length - placedTiles.length }).map((_, i) => (
-                <div key={i} className="w-10 h-12 border-2 border-dashed border-[#D4AF7A]/50 rounded-lg flex items-center justify-center text-gray-300">
-                  _
-                </div>
-              ))}
-            </div>
-
-            {/* Pickable Shuffled Tiles */}
-            <div className="flex flex-wrap justify-center gap-2 pt-2">
-              {shuffledTiles.map((tile) => (
-                <button
-                  key={tile.id}
-                  onClick={() => handleTileClick(tile)}
-                  className="w-11 h-12 bg-[#D4AF7A] text-[#123D32] font-extrabold text-lg rounded-lg shadow-md hover:bg-[#123D32] hover:text-[#D4AF7A] transition-all transform hover:-translate-y-1"
-                >
-                  {tile.letter}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex justify-center space-x-4 pt-4">
-              <button
-                onClick={handleResetTiles}
-                className="px-5 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-[#123D32]"
-              >
-                Reset Tiles
-              </button>
-              {unscrambleSolved && (
-                <button
-                  onClick={() => setGameStage(2)}
-                  className="px-8 py-3 bg-[#123D32] text-[#D4AF7A] font-bold rounded-full text-xs uppercase tracking-widest shadow-lg hover:bg-[#D4AF7A] hover:text-[#123D32] transition-all"
-                >
-                  Proceed to Stage 2 →
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* STAGE 2: Interactive Date Selection */}
-        {gameStage === 2 && (
-          <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-2xl border border-[#D4AF7A]/30 text-center space-y-6">
-            <div className="inline-block p-3 bg-[#FFF9F0] rounded-full text-[#123D32]">
-              <Calendar className="w-8 h-8" />
-            </div>
-            <h3 className="font-serif text-2xl font-bold text-[#123D32]">Stage 2: Discover the Wedding Date</h3>
-            <p className="text-sm text-gray-600 max-w-md mx-auto">
-              Select the official grand wedding date from the choices below to activate the countdown timer.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-xl mx-auto pt-4">
-              {["2026-10-15", "2026-11-28", "2026-12-12"].map((dateStr) => {
-                const formatted = new Date(dateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-                const isSelected = selectedDateGuess === dateStr;
-                return (
-                  <button
-                    key={dateStr}
-                    onClick={() => {
-                      setSelectedDateGuess(dateStr);
-                      if (dateStr === "2026-11-28") {
-                        showToast("Correct Wedding Date Selected!");
-                      }
-                    }}
-                    className={`p-5 rounded-2xl border-2 font-serif text-lg font-bold transition-all shadow-md ${
-                      isSelected
-                        ? "border-[#123D32] bg-[#123D32] text-[#D4AF7A]"
-                        : "border-[#D4AF7A]/40 bg-[#FFF9F0] text-[#123D32] hover:border-[#123D32]"
-                    }`}
-                  >
-                    {formatted}
-                  </button>
-                );
-              })}
-            </div>
-
-            {selectedDateGuess === "2026-11-28" && (
-              <div className="pt-4 space-y-4 animate-fade-in">
-                <p className="text-xs text-green-700 font-bold uppercase tracking-widest">✔ Official Wedding Date Verified: November 28, 2026</p>
-                <button
-                  onClick={() => setGameStage(3)}
-                  className="px-8 py-3 bg-[#123D32] text-[#D4AF7A] font-bold rounded-full text-xs uppercase tracking-widest shadow-lg hover:bg-[#D4AF7A] hover:text-[#123D32] transition-all"
-                >
-                  Proceed to Stage 3 →
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* STAGE 3: Color Matching Challenge */}
-        {gameStage === 3 && (
-          <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-2xl border border-[#D4AF7A]/30 text-center space-y-6">
-            <div className="inline-block p-3 bg-[#FFF9F0] rounded-full text-[#123D32]">
-              <Sparkles className="w-8 h-8" />
-            </div>
-            <h3 className="font-serif text-2xl font-bold text-[#123D32]">Stage 3: Reveal the Wedding Colors</h3>
-            <p className="text-sm text-gray-600 max-w-md mx-auto">
-              Tap each swatch to unlock the three royal wedding colors chosen for this joyous celebration.
-            </p>
-
-            <div className="flex justify-center items-center space-x-6 pt-4">
-              {[
-                { name: "Emerald Green", hex: config.colors.primary },
-                { name: "Champagne Gold", hex: config.colors.accent },
-                { name: "Warm Ivory", hex: config.colors.bg }
-              ].map((color) => {
-                const isMatched = matchedColors.includes(color.hex);
-                return (
-                  <button
-                    key={color.name}
-                    onClick={() => handleColorPick(color.hex)}
-                    className="group flex flex-col items-center space-y-2 focus:outline-none"
-                  >
-                    <div
-                      style={{ backgroundColor: color.hex }}
-                      className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 shadow-xl transition-transform duration-300 transform group-hover:scale-110 flex items-center justify-center ${
-                        isMatched ? "border-[#123D32]" : "border-gray-200"
-                      }`}
-                    >
-                      {isMatched && <Check className="w-8 h-8 text-[#123D32] drop-shadow-md" />}
-                    </div>
-                    <span className="text-xs font-semibold text-gray-700">{color.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {matchedColors.length >= 3 && (
-              <div className="pt-4 space-y-4 animate-fade-in">
-                <p className="text-xs text-green-700 font-bold uppercase tracking-widest">✔ Official Color Palette Unlocked!</p>
-                <button
-                  onClick={() => setGameStage(4)}
-                  className="px-8 py-3 bg-[#123D32] text-[#D4AF7A] font-bold rounded-full text-xs uppercase tracking-widest shadow-lg hover:bg-[#D4AF7A] hover:text-[#123D32] transition-all"
-                >
-                  Proceed to Stage 4 →
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* STAGE 4: Venue Clue Challenge */}
-        {gameStage === 4 && (
-          <div className="bg-white rounded-3xl p-6 sm:p-10 shadow-2xl border border-[#D4AF7A]/30 text-center space-y-6">
-            <div className="inline-block p-3 bg-[#FFF9F0] rounded-full text-[#123D32]">
-              <MapPin className="w-8 h-8" />
-            </div>
-            <h3 className="font-serif text-2xl font-bold text-[#123D32]">Stage 4: Venue Clue Challenge</h3>
-            <p className="text-sm text-gray-600 max-w-md mx-auto">
-              Clue: "Known as the Big Heart of Nigeria, situated along the majesty of the River Niger. Which Nigerian state is hosting our royal celebration?"
-            </p>
-
-            <form onSubmit={handleVenueClueCheck} className="max-w-md mx-auto space-y-4">
-              <input
-                type="text"
-                value={venueAnswer}
-                onChange={(e) => setVenueAnswer(e.target.value)}
-                placeholder="Type state or city name (e.g. Delta State / Asaba)"
-                className="w-full px-5 py-3 rounded-full border border-[#D4AF7A]/50 focus:outline-none focus:ring-2 focus:ring-[#123D32] text-center text-sm"
-              />
-              <button
-                type="submit"
-                className="w-full py-3 bg-[#123D32] text-[#D4AF7A] font-bold rounded-full text-xs uppercase tracking-widest shadow-lg hover:bg-[#D4AF7A] hover:text-[#123D32] transition-all"
-              >
-                Verify Answer
-              </button>
-            </form>
-
-            {venueClueSolved && (
-              <div className="pt-4 space-y-4 animate-fade-in">
-                <p className="text-xs text-green-700 font-bold uppercase tracking-widest">✔ Location Confirmed: Delta State, Nigeria!</p>
-                <button
-                  onClick={() => setGameStage(5)}
-                  className="px-8 py-3 bg-[#123D32] text-[#D4AF7A] font-bold rounded-full text-xs uppercase tracking-widest shadow-lg hover:bg-[#D4AF7A] hover:text-[#123D32] transition-all"
-                >
-                  Unlock Grand Invitation Card →
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* STAGE 5: Grand Unlocked Invitation Card */}
-        {gameStage === 5 && (
-          <div className="bg-[#123D32] rounded-3xl p-8 sm:p-14 shadow-2xl border-2 border-[#D4AF7A] text-[#FFF9F0] text-center space-y-8 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#D4AF7A_1px,transparent_1px)] [background-size:16px_16px]"></div>
-
-            <div className="relative z-10 space-y-6">
-              <div className="inline-flex items-center space-x-2 text-[#D4AF7A] text-xs uppercase tracking-widest font-bold bg-[#D4AF7A]/10 px-4 py-2 rounded-full border border-[#D4AF7A]/30">
-                <Unlock className="w-4 h-4" />
-                <span>Official Grand Invitation Card</span>
-              </div>
-
-              <h2 className="font-serif text-3xl sm:text-5xl font-extrabold text-[#D4AF7A]">
-                {config.groomName} <span className="font-serif italic font-light text-white text-2xl">&</span> {config.brideName}
-              </h2>
-
-              <p className="font-serif italic text-lg sm:text-xl text-[#EAD2CB] max-w-2xl mx-auto">
-                "Together with their families, joyfully request the pleasure of your company as they unite in holy matrimony."
-              </p>
-
-              {/* Countdown Display Card */}
-              <div className="bg-[#FFF9F0] text-[#123D32] rounded-2xl p-6 border-2 border-[#D4AF7A] max-w-2xl mx-auto shadow-xl">
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Countdown to the Celebration</p>
-                <div className="grid grid-cols-4 gap-2 sm:gap-4 text-center">
-                  <div className="bg-[#123D32] text-[#D4AF7A] p-3 rounded-xl">
-                    <span className="font-serif text-2xl sm:text-4xl font-bold block">{timeLeft.days}</span>
-                    <span className="text-[10px] sm:text-xs uppercase tracking-wider text-white">Days</span>
-                  </div>
-                  <div className="bg-[#123D32] text-[#D4AF7A] p-3 rounded-xl">
-                    <span className="font-serif text-2xl sm:text-4xl font-bold block">{timeLeft.hours}</span>
-                    <span className="text-[10px] sm:text-xs uppercase tracking-wider text-white">Hours</span>
-                  </div>
-                  <div className="bg-[#123D32] text-[#D4AF7A] p-3 rounded-xl">
-                    <span className="font-serif text-2xl sm:text-4xl font-bold block">{timeLeft.minutes}</span>
-                    <span className="text-[10px] sm:text-xs uppercase tracking-wider text-white">Mins</span>
-                  </div>
-                  <div className="bg-[#123D32] text-[#D4AF7A] p-3 rounded-xl">
-                    <span className="font-serif text-2xl sm:text-4xl font-bold block">{timeLeft.seconds}</span>
-                    <span className="text-[10px] sm:text-xs uppercase tracking-wider text-white">Secs</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Venue & Event Summary Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left max-w-2xl mx-auto pt-2">
-                <div className="p-5 bg-white/5 rounded-2xl border border-[#D4AF7A]/30">
-                  <div className="flex items-center space-x-3 text-[#D4AF7A] mb-2">
-                    <Calendar className="w-5 h-5" />
-                    <span className="font-bold text-sm">Date & Time</span>
-                  </div>
-                  <p className="text-sm font-serif">{new Date(config.weddingDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                  <p className="text-xs text-gray-300">10:00 AM WAT</p>
-                </div>
-
-                <div className="p-5 bg-white/5 rounded-2xl border border-[#D4AF7A]/30">
-                  <div className="flex items-center space-x-3 text-[#D4AF7A] mb-2">
-                    <MapPin className="w-5 h-5" />
-                    <span className="font-bold text-sm">Location</span>
-                  </div>
-                  <p className="text-sm font-serif">{config.venueName}</p>
-                  <p className="text-xs text-gray-300">{config.venueAddress}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                <a
-                  href="#rsvp"
-                  className="w-full sm:w-auto px-8 py-3.5 bg-[#D4AF7A] text-[#123D32] font-bold rounded-full text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg"
-                >
-                  RSVP Attendance
-                </a>
-                <button
-                  onClick={() => setShareModalOpen(true)}
-                  className="w-full sm:w-auto px-8 py-3.5 border border-[#D4AF7A] text-[#FFF9F0] font-semibold rounded-full text-xs uppercase tracking-widest hover:bg-[#D4AF7A]/10 transition-all flex items-center justify-center space-x-2"
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Share Invitation</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {}
-      <section id="story" className="py-20 px-4 bg-[#FFF9F0] border-t border-[#D4AF7A]/20">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16 space-y-3">
-            <span className="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">Our Journey</span>
-            <h2 className="font-serif text-3xl sm:text-5xl font-bold text-[#123D32]">Our Love Story</h2>
-            <div className="w-24 h-1 bg-[#D4AF7A] mx-auto rounded-full"></div>
-          </div>
-
-          <div className="relative border-l-2 border-[#D4AF7A]/40 ml-4 sm:ml-32 space-y-12">
-            {[
-              {
-                year: "2022",
-                title: "How We Met",
-                description: "Our paths crossed at a mutual friend's traditional celebration in Lagos. A casual conversation about music and Nigerian heritage turned into hours of shared laughter."
-              },
-              {
-                year: "2023",
-                title: "First Memorable Date",
-                description: "A serene evening along the water, sharing traditional delicacies and discussing our dreams for the future. We knew then that something deeply special was unfolding."
-              },
-              {
-                year: "2024",
-                title: "Building Our Life",
-                description: "Through long phone calls, family introductions, and shared adventures across Nigeria, our bond grew unbreakable."
-              },
-              {
-                year: "2025",
-                title: "The Proposal",
-                description: "Surrounded by warm candle lights and quiet beauty, Emeke got down on one knee and asked Rosemary to be his wife forever. With tears of joy, she said YES!"
-              },
-              {
-                year: "2026",
-                title: "Forever Begins",
-                description: "Now we stand ready to celebrate our union in holy matrimony in Delta State, surrounded by those we love most."
-              }
-            ].map((milestone, idx) => (
-              <div key={idx} className="relative pl-8 group">
-                {/* Timeline Dot Icon */}
-                <div className="absolute -left-[17px] top-1.5 w-8 h-8 rounded-full bg-[#123D32] border-2 border-[#D4AF7A] text-[#D4AF7A] flex items-center justify-center shadow-lg group-hover:scale-125 transition-transform">
-                  <Heart className="w-4 h-4 fill-current" />
-                </div>
-
-                <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-[#D4AF7A]/30 space-y-2 transform hover:-translate-y-1 transition-transform">
-                  <span className="text-xs font-bold text-[#D4AF7A] tracking-widest uppercase">{milestone.year}</span>
-                  <h3 className="font-serif text-2xl font-bold text-[#123D32]">{milestone.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{milestone.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {}
-      <section id="couple" className="py-20 px-4 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16 space-y-3">
-            <span className="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">The Main Characters</span>
-            <h2 className="font-serif text-3xl sm:text-5xl font-bold text-[#123D32]">Meet the Couple</h2>
-            <div className="w-24 h-1 bg-[#D4AF7A] mx-auto rounded-full"></div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            {/* The Groom Card */}
-            <div className="bg-[#FFF9F0] rounded-3xl p-8 border border-[#D4AF7A]/30 shadow-xl flex flex-col items-center text-center space-y-6">
-              <div className="relative">
-                <img
-                  src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600"
-                  alt="Groom - ALIDUNKWU EMEKE"
-                  className="w-44 h-44 rounded-full object-cover border-4 border-[#D4AF7A] shadow-2xl"
-                />
-                <div className="absolute bottom-2 right-2 bg-[#123D32] text-[#D4AF7A] p-2 rounded-full border border-[#D4AF7A]">
-                  <Crown className="w-5 h-5" />
-                </div>
-              </div>
-              <div>
-                <span className="text-xs uppercase tracking-widest text-gray-500 font-bold">The Groom</span>
-                <h3 className="font-serif text-3xl font-bold text-[#123D32]">{config.groomName}</h3>
-              </div>
-              <p className="text-sm text-gray-600 leading-relaxed font-light">
-                An accomplished professional with a passion for innovation, family, and tradition. Emeke's warm heart, strength, and infectious smile bring light to everyone around him.
-              </p>
-              <p className="font-serif italic text-[#123D32] font-semibold text-sm bg-white p-4 rounded-xl border border-[#D4AF7A]/20">
-                "Rosemary is my rock, my joy, and my answered prayer. I cannot wait to start forever with her."
-              </p>
-            </div>
-
-            {/* The Bride Card */}
-            <div className="bg-[#FFF9F0] rounded-3xl p-8 border border-[#D4AF7A]/30 shadow-xl flex flex-col items-center text-center space-y-6">
-              <div className="relative">
-                <img
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600"
-                  alt="Bride - ALABI ROSEMARY"
-                  className="w-44 h-44 rounded-full object-cover border-4 border-[#D4AF7A] shadow-2xl"
-                />
-                <div className="absolute bottom-2 right-2 bg-[#123D32] text-[#D4AF7A] p-2 rounded-full border border-[#D4AF7A]">
-                  <Crown className="w-5 h-5" />
-                </div>
-              </div>
-              <div>
-                <span className="text-xs uppercase tracking-widest text-gray-500 font-bold">The Bride</span>
-                <h3 className="font-serif text-3xl font-bold text-[#123D32]">{config.brideName}</h3>
-              </div>
-              <p className="text-sm text-gray-600 leading-relaxed font-light">
-                A woman of poise, intelligence, and grace. Rosemary's warmth and deep love for culture and family shine brightly in everything she accomplishes.
-              </p>
-              <p className="font-serif italic text-[#123D32] font-semibold text-sm bg-white p-4 rounded-xl border border-[#D4AF7A]/20">
-                "In Emeke, I found my best friend, my protector, and my soulmate. My heart is whole with him."
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {}
-      <section id="programme" className="py-20 px-4 bg-[#FFF9F0] border-t border-[#D4AF7A]/20">
-        <div className="max-w-5xl mx-auto space-y-16">
-          <div className="text-center space-y-3">
-            <span className="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">Schedule of Events</span>
-            <h2 className="font-serif text-3xl sm:text-5xl font-bold text-[#123D32]">Wedding Programme</h2>
-            <div className="w-24 h-1 bg-[#D4AF7A] mx-auto rounded-full"></div>
-          </div>
-
-          {/* Programme Timeline Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                time: "10:00 AM",
-                title: "Traditional Marriage Ceremony",
-                subtitle: "Igba Nkwu / Ikpo Nku",
-                details: "Traditional rites, family blessings, and palm wine presentation."
-              },
-              {
-                time: "01:00 PM",
-                title: "Religious Solemnization",
-                subtitle: "Holy Matrimony",
-                details: "Exchange of vows and rings in holy matrimony."
-              },
-              {
-                time: "03:30 PM",
-                title: "Grand Reception & Party",
-                subtitle: "Celebration & Entertainment",
-                details: "Couple entrance, cultural dances, grand dining, and festivities!"
-              }
-            ].map((prog, idx) => (
-              <div key={idx} className="bg-white rounded-2xl p-6 border border-[#D4AF7A]/30 shadow-lg space-y-4 text-center">
-                <div className="inline-block px-4 py-1.5 bg-[#123D32] text-[#D4AF7A] font-bold text-xs rounded-full">
-                  {prog.time}
-                </div>
-                <h3 className="font-serif text-xl font-bold text-[#123D32]">{prog.title}</h3>
-                <p className="text-xs font-semibold text-[#D4AF7A] uppercase tracking-wider">{prog.subtitle}</p>
-                <p className="text-xs text-gray-600 leading-relaxed">{prog.details}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Dress Code Swatch Viewer */}
-          <div className="bg-[#123D32] text-[#FFF9F0] rounded-3xl p-8 sm:p-12 border-2 border-[#D4AF7A] shadow-2xl text-center space-y-6">
-            <div className="inline-block p-3 bg-[#D4AF7A]/10 rounded-full text-[#D4AF7A]">
-              <Gift className="w-8 h-8" />
-            </div>
-            <h3 className="font-serif text-3xl font-bold text-[#D4AF7A]">Dress Code & AsoEbi Inspiration</h3>
-            <p className="text-sm text-gray-200 max-w-xl mx-auto">
-              {config.dressCode}
-            </p>
-
-            <div className="flex justify-center items-center space-x-6 pt-2">
-              <div className="flex flex-col items-center space-y-2">
-                <div className="w-16 h-16 rounded-full bg-[#123D32] border-2 border-[#D4AF7A] shadow-md"></div>
-                <span className="text-xs font-semibold text-[#D4AF7A]">Emerald Green</span>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <div className="w-16 h-16 rounded-full bg-[#D4AF7A] border-2 border-white shadow-md"></div>
-                <span className="text-xs font-semibold text-[#D4AF7A]">Champagne Gold</span>
-              </div>
-              <div className="flex flex-col items-center space-y-2">
-                <div className="w-16 h-16 rounded-full bg-[#FFF9F0] border-2 border-[#D4AF7A] shadow-md"></div>
-                <span className="text-xs font-semibold text-[#D4AF7A]">Warm Ivory</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {}
-      <section id="gallery" className="py-20 px-4 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16 space-y-3">
-            <span className="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">Captured Moments</span>
-            <h2 className="font-serif text-3xl sm:text-5xl font-bold text-[#123D32]">Photo Gallery</h2>
-            <div className="w-24 h-1 bg-[#D4AF7A] mx-auto rounded-full"></div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {galleryImages.map((img, idx) => (
-              <div
-                key={idx}
-                onClick={() => setActiveImageIndex(idx)}
-                className="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-lg border border-[#D4AF7A]/20"
-              >
-                <img
-                  src={img.url}
-                  alt={img.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#123D32]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
-                  <div>
-                    <span className="text-[10px] font-bold text-[#D4AF7A] uppercase tracking-widest">{img.category}</span>
-                    <h4 className="font-serif text-lg font-bold text-white">{img.title}</h4>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Fullscreen Lightbox Modal */}
-      {activeImageIndex !== null && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
-          <button
-            onClick={() => setActiveImageIndex(null)}
-            className="absolute top-6 right-6 text-white p-2 hover:text-[#D4AF7A]"
-          >
-            <X className="w-8 h-8" />
-          </button>
-          <div className="max-w-4xl max-h-[85vh] relative">
-            <img
-              src={galleryImages[activeImageIndex].url}
-              alt={galleryImages[activeImageIndex].title}
-              className="max-w-full max-h-[80vh] object-contain rounded-xl border border-[#D4AF7A]/40"
-            />
-            <p className="text-center text-[#D4AF7A] font-serif text-xl mt-4">
-              {galleryImages[activeImageIndex].title}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {}
-      <section id="rsvp" className="py-20 px-4 bg-[#FFF9F0] border-t border-[#D4AF7A]/20">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
-          
-          {/* RSVP Form Card */}
-          <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#D4AF7A]/30 shadow-xl space-y-6">
-            <div>
-              <span className="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">Please Respond</span>
-              <h2 className="font-serif text-3xl font-bold text-[#123D32]">Confirm Your Attendance</h2>
-            </div>
-
-            {rsvpSuccess ? (
-              <div className="p-6 bg-green-50 border border-green-200 rounded-2xl text-center space-y-3">
-                <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto" />
-                <h3 className="font-serif text-xl font-bold text-green-900">RSVP Confirmed!</h3>
-                <p className="text-xs text-green-700">Thank you for confirming. We can't wait to celebrate with you in Delta State!</p>
-                <button
-                  onClick={() => setRsvpSuccess(false)}
-                  className="px-6 py-2 bg-[#123D32] text-[#D4AF7A] font-bold rounded-full text-xs uppercase"
-                >
-                  Submit Another RSVP
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleRSVPSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={rsvpData.name}
-                    onChange={(e) => setRsvpData({ ...rsvpData, name: e.target.value })}
-                    placeholder="e.g. Chief Emeka Okafor"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#123D32] text-sm"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Email *</label>
-                    <input
-                      type="email"
-                      required
-                      value={rsvpData.email}
-                      onChange={(e) => setRsvpData({ ...rsvpData, email: e.target.value })}
-                      placeholder="name@example.com"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#123D32] text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Phone Number</label>
-                    <input
-                      type="tel"
-                      value={rsvpData.phone}
-                      onChange={(e) => setRsvpData({ ...rsvpData, phone: e.target.value })}
-                      placeholder="+234..."
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#123D32] text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Attendance Status</label>
-                    <select
-                      value={rsvpData.status}
-                      onChange={(e) => setRsvpData({ ...rsvpData, status: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#123D32] text-sm bg-white"
-                    >
-                      <option value="Attending">Joyfully Attending</option>
-                      <option value="Declining">Regretfully Declining</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Number of Guests</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={rsvpData.guests}
-                      onChange={(e) => setRsvpData({ ...rsvpData, guests: parseInt(e.target.value) || 1 })}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#123D32] text-sm"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3.5 bg-[#123D32] text-[#D4AF7A] font-bold rounded-xl text-xs uppercase tracking-widest shadow-lg hover:bg-[#D4AF7A] hover:text-[#123D32] transition-all"
-                >
-                  Submit RSVP
-                </button>
-              </form>
-            )}
-          </div>
-
-          {/* Live Guestbook Section */}
-          <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#D4AF7A]/30 shadow-xl space-y-6 flex flex-col justify-between">
-            <div>
-              <span className="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">Warm Wishes</span>
-              <h2 className="font-serif text-3xl font-bold text-[#123D32]">Guestbook</h2>
-            </div>
-
-            {/* Guestbook Messages Scroll Container */}
-            <div className="space-y-4 max-h-72 overflow-y-auto pr-2">
-              {guestMessages.map((msg) => (
-                <div key={msg.id} className="p-4 rounded-xl bg-[#FFF9F0] border border-[#D4AF7A]/20 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-sm text-[#123D32]">{msg.name}</span>
-                    <span className="text-[10px] text-gray-400">{msg.time}</span>
-                  </div>
-                  <p className="text-xs text-gray-600 italic">"{msg.text}"</p>
-                  <button
-                    onClick={() => handleLikeMessage(msg.id)}
-                    className="flex items-center space-x-1 text-[11px] text-[#D4AF7A] hover:text-[#123D32]"
-                  >
-                    <Heart className="w-3.5 h-3.5 fill-current" />
-                    <span>{msg.likes} Wishes</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Post Message Form */}
-            <form onSubmit={handleAddGuestMessage} className="space-y-3 pt-2">
-              <input
-                type="text"
-                placeholder="Your Name"
-                value={newMessage.name}
-                onChange={(e) => setNewMessage({ ...newMessage, name: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-[#123D32]"
-              />
-              <textarea
-                rows="2"
-                placeholder="Write your congratulations message..."
-                value={newMessage.text}
-                onChange={(e) => setNewMessage({ ...newMessage, text: e.target.value })}
-                className="w-full px-4 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-[#123D32]"
-              ></textarea>
-              <button
-                type="submit"
-                className="w-full py-2.5 bg-[#D4AF7A] text-[#123D32] font-bold rounded-xl text-xs uppercase tracking-widest hover:bg-[#123D32] hover:text-[#D4AF7A] transition-all"
-              >
-                Post Wish
-              </button>
-            </form>
-          </div>
-        </div>
-      </section>
-
-      {}
-      {isAdminOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#D4AF7A] space-y-6 shadow-2xl">
-            <div className="flex justify-between items-center border-b pb-4">
-              <h3 className="font-serif text-2xl font-bold text-[#123D32] flex items-center space-x-2">
-                <Settings className="w-6 h-6 text-[#D4AF7A]" />
-                <span>Admin Customization Panel</span>
-              </h3>
-              <button onClick={() => setIsAdminOpen(false)} className="text-gray-400 hover:text-black">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Groom's Name</label>
-                  <input
-                    type="text"
-                    value={config.groomName}
-                    onChange={(e) => setConfig({ ...config, groomName: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Bride's Name</label>
-                  <input
-                    type="text"
-                    value={config.brideName}
-                    onChange={(e) => setConfig({ ...config, brideName: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg text-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Wedding ISO Date</label>
-                <input
-                  type="datetime-local"
-                  value={config.weddingDate.substring(0, 16)}
-                  onChange={(e) => setConfig({ ...config, weddingDate: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Venue Name</label>
-                <input
-                  type="text"
-                  value={config.venueName}
-                  onChange={(e) => setConfig({ ...config, venueName: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Venue Address</label>
-                <input
-                  type="text"
-                  value={config.venueAddress}
-                  onChange={(e) => setConfig({ ...config, venueAddress: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                />
-              </div>
-
-              {/* RSVP List Inspection */}
-              <div className="pt-4 border-t space-y-3">
-                <h4 className="font-bold text-sm text-[#123D32]">Submitted RSVPs ({rsvpSubmissions.length})</h4>
-                <div className="max-h-40 overflow-y-auto space-y-2 border p-3 rounded-xl bg-gray-50 text-xs">
-                  {rsvpSubmissions.map((r) => (
-                    <div key={r.id} className="flex justify-between items-center border-b pb-1">
-                      <span><strong>{r.name}</strong> ({r.guests} guests)</span>
-                      <span className="text-green-700 font-bold">{r.status}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t flex justify-end space-x-3">
-              <button
-                onClick={() => {
-                  setConfig(DEFAULT_CONFIG);
-                  showToast("Reset to default wedding configuration");
-                }}
-                className="px-4 py-2 border text-xs font-bold rounded-lg uppercase"
-              >
-                Reset Default
-              </button>
-              <button
-                onClick={() => setIsAdminOpen(false)}
-                className="px-6 py-2 bg-[#123D32] text-[#D4AF7A] font-bold rounded-lg text-xs uppercase"
-              >
-                Save & Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Share Modal */}
-      {shareModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center space-y-4">
-            <h3 className="font-serif text-xl font-bold text-[#123D32]">Share Wedding Invitation</h3>
-            <p className="text-xs text-gray-500">Copy link to send to family and friends:</p>
-            <div className="flex items-center space-x-2 border p-2 rounded-xl bg-gray-50">
-              <input type="text" readOnly value={window.location.href} className="w-full text-xs bg-transparent focus:outline-none" />
-              <button onClick={copyShareLink} className="p-2 bg-[#123D32] text-[#D4AF7A] rounded-lg">
-                {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              </button>
-            </div>
-            <button onClick={() => setShareModalOpen(false)} className="text-xs text-gray-400 underline">Close</button>
-          </div>
-        </div>
-      )}
-
-      {}
-      <footer className="bg-[#123D32] text-[#FFF9F0] py-12 px-4 border-t-2 border-[#D4AF7A] text-center space-y-4">
-        <div className="font-serif text-2xl font-bold text-[#D4AF7A]">
-          {config.groomName} & {config.brideName}
-        </div>
-        <p className="text-xs text-gray-300 max-w-md mx-auto">
-          Celebrating Love, Culture, and Tradition in Delta State, Nigeria.
-        </p>
-        <p className="text-[10px] text-gray-400">
-          © 2026 All Rights Reserved • Made with Love & Elegance
-        </p>
-      </footer>
-
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        emerald: '#123D32',
+                        gold: '#D4AF7A',
+                        ivory: '#FFF9F0',
+                        blush: '#EAD2CB',
+                        charcoal: '#252321',
+                    },
+                    fontFamily: {
+                        serif: ['Playfair Display', 'serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts & Lucide Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background-color: #FFF9F0;
+            color: #252321;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(1deg); }
+        }
+        .animate-float {
+            animation: floatSlow 6s ease-in-out infinite;
+        }
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #FFF0D0 0%, #D4AF7A 50%, #9A7743 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gold-border-glow {
+            box-shadow: 0 0 25px rgba(212, 175, 122, 0.25);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #123D32;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #D4AF7A;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="relative">
+
+    <div id="toast" class="fixed top-24 right-5 z-50 transform translate-x-72 transition-transform duration-300 bg-[#123D32] text-[#D4AF7A] border border-[#D4AF7A]/50 px-5 py-3 rounded-full shadow-2xl flex items-center space-x-3 text-xs sm:text-sm font-medium">
+        <i data-lucide="sparkles" class="w-4 h-4 text-[#D4AF7A]"></i>
+        <span id="toast-text">Welcome to our wedding invitation!</span>
     </div>
-  );
-}
+
+    <nav class="sticky top-0 z-40 bg-[#123D32]/95 backdrop-blur-md border-b border-[#D4AF7A]/30 text-[#FFF9F0] transition-all">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <a href="#hero" class="flex items-center space-x-2 font-serif text-lg sm:text-xl tracking-wider text-[#D4AF7A]">
+                    <i data-lucide="crown" class="w-6 h-6 text-[#D4AF7A]"></i>
+                    <span class="font-bold tracking-tight" id="nav-brand">EMEKE & ROSEMARY</span>
+                </a>
+
+                <!-- Desktop Links -->
+                <div class="hidden md:flex items-center space-x-8 text-xs uppercase tracking-widest font-semibold text-[#FFF9F0]">
+                    <a href="#discovery" class="hover:text-[#D4AF7A] transition-colors">The Game</a>
+                    <a href="#story" class="hover:text-[#D4AF7A] transition-colors">Our Story</a>
+                    <a href="#couple" class="hover:text-[#D4AF7A] transition-colors">The Couple</a>
+                    <a href="#programme" class="hover:text-[#D4AF7A] transition-colors">Programme</a>
+                    <a href="#gallery" class="hover:text-[#D4AF7A] transition-colors">Gallery</a>
+                    <a href="#rsvp" class="bg-[#D4AF7A] text-[#123D32] px-5 py-2.5 rounded-full hover:bg-white transition-all transform hover:-translate-y-0.5 shadow-md font-bold">RSVP Now</a>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button id="mobile-menu-btn" class="md:hidden text-[#D4AF7A] p-2 focus:outline-none">
+                    <i data-lucide="menu" class="w-7 h-7"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Dropdown -->
+        <div id="mobile-menu" class="hidden md:hidden bg-[#123D32] border-b border-[#D4AF7A]/30 px-6 py-6 space-y-4 text-center font-serif text-sm">
+            <a href="#discovery" class="mobile-link block text-[#FFF9F0] py-2 border-b border-[#FFF9F0]/10">The Game</a>
+            <a href="#story" class="mobile-link block text-[#FFF9F0] py-2 border-b border-[#FFF9F0]/10">Our Story</a>
+            <a href="#couple" class="mobile-link block text-[#FFF9F0] py-2 border-b border-[#FFF9F0]/10">The Couple</a>
+            <a href="#programme" class="mobile-link block text-[#FFF9F0] py-2 border-b border-[#FFF9F0]/10">Programme</a>
+            <a href="#gallery" class="mobile-link block text-[#FFF9F0] py-2 border-b border-[#FFF9F0]/10">Gallery</a>
+            <a href="#rsvp" class="mobile-link inline-block bg-[#D4AF7A] text-[#123D32] px-8 py-3 rounded-full font-sans font-bold text-xs uppercase tracking-widest mt-2">RSVP Now</a>
+        </div>
+    </nav>
+
+    <section id="hero" class="relative min-h-[92vh] flex items-center justify-center bg-[#123D32] text-[#FFF9F0] px-4 py-16 overflow-hidden">
+        <canvas id="hero-canvas" class="absolute inset-0 pointer-events-none z-0"></canvas>
+        
+        <!-- Decorative Corners -->
+        <div class="absolute top-8 left-8 w-16 h-16 border-t-2 border-l-2 border-[#D4AF7A]/50 pointer-events-none hidden sm:block"></div>
+        <div class="absolute bottom-8 right-8 w-16 h-16 border-b-2 border-r-2 border-[#D4AF7A]/50 pointer-events-none hidden sm:block"></div>
+
+        <div class="relative z-10 max-w-4xl mx-auto text-center space-y-8 animate-float">
+            <div class="inline-flex items-center space-x-3 px-4 py-1.5 rounded-full border border-[#D4AF7A]/40 bg-[#D4AF7A]/10 text-[#D4AF7A] text-xs sm:text-sm tracking-widest uppercase font-semibold">
+                <i data-lucide="crown" class="w-4 h-4"></i>
+                <span id="hero-subtitle">Royal Wedding Celebration • Delta State, Nigeria</span>
+            </div>
+
+            <div class="space-y-4">
+                <h1 id="hero-groom" class="font-serif text-4xl sm:text-6xl lg:text-7xl font-extrabold gold-gradient-text tracking-tight leading-tight">
+                    ALIDUNKWU EMEKE
+                </h1>
+                <p class="font-serif italic text-2xl sm:text-3xl text-[#EAD2CB] font-light">Weds</p>
+                <h1 id="hero-bride" class="font-serif text-4xl sm:text-6xl lg:text-7xl font-extrabold gold-gradient-text tracking-tight leading-tight">
+                    ALABI ROSEMARY
+                </h1>
+            </div>
+
+            <p id="hero-headline" class="font-serif text-xl sm:text-2xl text-[#FFF9F0]/90 italic max-w-2xl mx-auto leading-relaxed">
+                “Two Hearts. One Destiny. Forever Begins Here.”
+            </p>
+
+            <p id="hero-subtext" class="text-xs sm:text-sm text-[#FFF9F0]/75 max-w-xl mx-auto font-light leading-relaxed">
+                Join us on a beautiful journey of love, tradition, and a lifetime of togetherness in Delta State, Nigeria.
+            </p>
+
+            <div class="pt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="#discovery" onclick="startDiscoveryGame()" class="w-full sm:w-auto px-8 py-4 bg-[#D4AF7A] text-[#123D32] font-bold rounded-full text-xs uppercase tracking-widest hover:bg-white transition-all shadow-xl flex items-center justify-center space-x-2">
+                    <span>DISCOVER OUR WEDDING</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </a>
+                <a href="#discovery" onclick="skipToInvitation()" class="w-full sm:w-auto px-8 py-4 border border-[#D4AF7A]/50 text-[#FFF9F0] font-semibold rounded-full text-xs uppercase tracking-widest hover:bg-[#D4AF7A]/10 transition-all text-center">
+                    Skip to Invitation
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="discovery" class="py-20 px-4 max-w-5xl mx-auto">
+        <div class="text-center mb-12 space-y-3">
+            <span class="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">Interactive Discovery Experience</span>
+            <h2 class="font-serif text-3xl sm:text-5xl font-bold text-[#123D32]">The Journey to Forever</h2>
+            <div class="w-24 h-1 bg-[#D4AF7A] mx-auto rounded-full"></div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="bg-white p-6 rounded-2xl shadow-xl border border-[#D4AF7A]/30 mb-10">
+            <div class="flex justify-between items-center text-xs sm:text-sm font-semibold text-[#123D32] mb-3">
+                <span id="stage-progress-text">Progress: Stage 1 of 5</span>
+                <span id="stage-percent-text" class="text-[#D4AF7A]">0% Completed</span>
+            </div>
+            <div class="w-full bg-[#FFF9F0] h-3 rounded-full overflow-hidden border border-[#D4AF7A]/20">
+                <div id="progress-bar-fill" class="bg-[#123D32] h-full transition-all duration-500 rounded-full w-[20%]"></div>
+            </div>
+            <div class="flex justify-between text-[10px] sm:text-xs text-gray-500 mt-2 font-medium">
+                <span>1. Names</span>
+                <span>2. Date</span>
+                <span>3. Palette</span>
+                <span>4. Venue</span>
+                <span>5. Invitation</span>
+            </div>
+        </div>
+
+        <!-- STAGE 1: Name Unscramble Tile Challenge -->
+        <div id="game-stage-1" class="bg-white rounded-3xl p-6 sm:p-10 shadow-2xl border border-[#D4AF7A]/30 text-center space-y-6">
+            <div class="inline-block p-3 bg-[#FFF9F0] rounded-full text-[#123D32]">
+                <i data-lucide="lock" class="w-8 h-8"></i>
+            </div>
+            <h3 class="font-serif text-2xl font-bold text-[#123D32]">Stage 1: Unlock the Couple's Names</h3>
+            <p class="text-xs sm:text-sm text-gray-600 max-w-md mx-auto">
+                Click the letter tiles below to unscramble and spell out the groom's and bride's names: <strong class="text-[#123D32]">EMEKEROSEMARY</strong>
+            </p>
+
+            <div id="stage1-placed-container" class="flex flex-wrap justify-center gap-1.5 sm:gap-2 min-h-[56px] p-3 sm:p-4 bg-[#FFF9F0] rounded-xl border border-[#D4AF7A]/30">
+                <!-- Selected slots injected dynamically -->
+            </div>
+
+            <div id="stage1-tiles-container" class="flex flex-wrap justify-center gap-2 pt-2">
+                <!-- Tile buttons injected dynamically -->
+            </div>
+
+            <div class="flex justify-center items-center space-x-4 pt-4">
+                <button onclick="resetStage1()" class="px-5 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-[#123D32]">
+                    Reset Tiles
+                </button>
+                <button id="stage1-next-btn" onclick="goToStage(2)" class="hidden px-8 py-3 bg-[#123D32] text-[#D4AF7A] font-bold rounded-full text-xs uppercase tracking-widest shadow-lg hover:bg-[#D4AF7A] hover:text-[#123D32] transition-all">
+                    Proceed to Stage 2 →
+                </button>
+            </div>
+        </div>
+
+        <!-- STAGE 2: Interactive Date Selection -->
+        <div id="game-stage-2" class="hidden bg-white rounded-3xl p-6 sm:p-10 shadow-2xl border border-[#D4AF7A]/30 text-center space-y-6">
+            <div class="inline-block p-3 bg-[#FFF9F0] rounded-full text-[#123D32]">
+                <i data-lucide="calendar" class="w-8 h-8"></i>
+            </div>
+            <h3 class="font-serif text-2xl font-bold text-[#123D32]">Stage 2: Discover the Wedding Date</h3>
+            <p class="text-xs sm:text-sm text-gray-600 max-w-md mx-auto">
+                Select the official grand wedding date from the choices below to activate the countdown timer.
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-xl mx-auto pt-4">
+                <button onclick="selectDateGuess('2026-10-15', this)" class="date-btn p-5 rounded-2xl border-2 font-serif text-lg font-bold border-[#D4AF7A]/40 bg-[#FFF9F0] text-[#123D32] hover:border-[#123D32] transition-all shadow-md">
+                    October 15, 2026
+                </button>
+                <button onclick="selectDateGuess('2026-11-28', this)" class="date-btn p-5 rounded-2xl border-2 font-serif text-lg font-bold border-[#D4AF7A]/40 bg-[#FFF9F0] text-[#123D32] hover:border-[#123D32] transition-all shadow-md">
+                    November 28, 2026
+                </button>
+                <button onclick="selectDateGuess('2026-12-12', this)" class="date-btn p-5 rounded-2xl border-2 font-serif text-lg font-bold border-[#D4AF7A]/40 bg-[#FFF9F0] text-[#123D32] hover:border-[#123D32] transition-all shadow-md">
+                    December 12, 2026
+                </button>
+            </div>
+
+            <div id="stage2-success" class="hidden pt-4 space-y-4">
+                <p class="text-xs text-green-700 font-bold uppercase tracking-widest">✔ Official Wedding Date Verified: November 28, 2026</p>
+                <button onclick="goToStage(3)" class="px-8 py-3 bg-[#123D32] text-[#D4AF7A] font-bold rounded-full text-xs uppercase tracking-widest shadow-lg hover:bg-[#D4AF7A] hover:text-[#123D32] transition-all">
+                    Proceed to Stage 3 →
+                </button>
+            </div>
+        </div>
+
+        <!-- STAGE 3: Swatch Color Match -->
+        <div id="game-stage-3" class="hidden bg-white rounded-3xl p-6 sm:p-10 shadow-2xl border border-[#D4AF7A]/30 text-center space-y-6">
+            <div class="inline-block p-3 bg-[#FFF9F0] rounded-full text-[#123D32]">
+                <i data-lucide="sparkles" class="w-8 h-8"></i>
+            </div>
+            <h3 class="font-serif text-2xl font-bold text-[#123D32]">Stage 3: Reveal the Wedding Colors</h3>
+            <p class="text-xs sm:text-sm text-gray-600 max-w-md mx-auto">
+                Tap each swatch to unlock the official wedding palette selected for this royal union.
+            </p>
+
+            <div class="flex justify-center items-center space-x-6 pt-4">
+                <button onclick="matchColor('#123D32', this)" class="color-swatch-btn flex flex-col items-center space-y-2 focus:outline-none">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#123D32] border-4 border-gray-200 shadow-xl transition-transform hover:scale-110 flex items-center justify-center text-white"></div>
+                    <span class="text-xs font-semibold text-gray-700">Emerald Green</span>
+                </button>
+                <button onclick="matchColor('#D4AF7A', this)" class="color-swatch-btn flex flex-col items-center space-y-2 focus:outline-none">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#D4AF7A] border-4 border-gray-200 shadow-xl transition-transform hover:scale-110 flex items-center justify-center text-white"></div>
+                    <span class="text-xs font-semibold text-gray-700">Champagne Gold</span>
+                </button>
+                <button onclick="matchColor('#FFF9F0', this)" class="color-swatch-btn flex flex-col items-center space-y-2 focus:outline-none">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#FFF9F0] border-4 border-gray-200 shadow-xl transition-transform hover:scale-110 flex items-center justify-center text-gray-800"></div>
+                    <span class="text-xs font-semibold text-gray-700">Warm Ivory</span>
+                </button>
+            </div>
+
+            <div id="stage3-success" class="hidden pt-4 space-y-4">
+                <p class="text-xs text-green-700 font-bold uppercase tracking-widest">✔ Official Color Palette Unlocked!</p>
+                <button onclick="goToStage(4)" class="px-8 py-3 bg-[#123D32] text-[#D4AF7A] font-bold rounded-full text-xs uppercase tracking-widest shadow-lg hover:bg-[#D4AF7A] hover:text-[#123D32] transition-all">
+                    Proceed to Stage 4 →
+                </button>
+            </div>
+        </div>
+
+        <!-- STAGE 4: Venue Clue Unlocker -->
+        <div id="game-stage-4" class="hidden bg-white rounded-3xl p-6 sm:p-10 shadow-2xl border border-[#D4AF7A]/30 text-center space-y-6">
+            <div class="inline-block p-3 bg-[#FFF9F0] rounded-full text-[#123D32]">
+                <i data-lucide="map-pin" class="w-8 h-8"></i>
+            </div>
+            <h3 class="font-serif text-2xl font-bold text-[#123D32]">Stage 4: Venue Clue Challenge</h3>
+            <p class="text-xs sm:text-sm text-gray-600 max-w-md mx-auto">
+                Clue: "Known as the Big Heart of Nigeria, situated along the majesty of the River Niger. Which Nigerian state is hosting our royal celebration?"
+            </p>
+
+            <form onsubmit="verifyVenueClue(event)" class="max-w-md mx-auto space-y-4">
+                <input id="venue-answer-input" type="text" placeholder="Type state or city name (e.g. Delta State / Asaba)" class="w-full px-5 py-3 rounded-full border border-[#D4AF7A]/50 focus:outline-none focus:ring-2 focus:ring-[#123D32] text-center text-xs sm:text-sm">
+                <button type="submit" class="w-full py-3 bg-[#123D32] text-[#D4AF7A] font-bold rounded-full text-xs uppercase tracking-widest shadow-lg hover:bg-[#D4AF7A] hover:text-[#123D32] transition-all">
+                    Verify Answer
+                </button>
+            </form>
+
+            <div id="stage4-success" class="hidden pt-4 space-y-4">
+                <p class="text-xs text-green-700 font-bold uppercase tracking-widest">✔ Location Confirmed: Delta State, Nigeria!</p>
+                <button onclick="goToStage(5)" class="px-8 py-3 bg-[#123D32] text-[#D4AF7A] font-bold rounded-full text-xs uppercase tracking-widest shadow-lg hover:bg-[#D4AF7A] hover:text-[#123D32] transition-all">
+                    Unlock Grand Digital Invitation Card →
+                </button>
+            </div>
+        </div>
+
+        <!-- STAGE 5: Grand Unlocked Invitation Card -->
+        <div id="game-stage-5" class="hidden bg-[#123D32] rounded-3xl p-6 sm:p-14 shadow-2xl border-2 border-[#D4AF7A] text-[#FFF9F0] text-center space-y-8 relative overflow-hidden">
+            <div class="inline-flex items-center space-x-2 text-[#D4AF7A] text-xs uppercase tracking-widest font-bold bg-[#D4AF7A]/10 px-4 py-2 rounded-full border border-[#D4AF7A]/30">
+                <i data-lucide="unlock" class="w-4 h-4"></i>
+                <span>Official Grand Digital Invitation Card</span>
+            </div>
+
+            <h2 id="card-couple-title" class="font-serif text-3xl sm:text-5xl font-extrabold gold-gradient-text">
+                ALIDUNKWU EMEKE & ALABI ROSEMARY
+            </h2>
+
+            <p class="font-serif italic text-lg sm:text-xl text-[#EAD2CB] max-w-2xl mx-auto">
+                “Together with their families, joyfully request the pleasure of your company as they unite in holy matrimony.”
+            </p>
+
+            <!-- Countdown Display -->
+            <div class="bg-[#FFF9F0] text-[#123D32] rounded-2xl p-6 border-2 border-[#D4AF7A] max-w-2xl mx-auto shadow-xl">
+                <p class="text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">Countdown to the Celebration</p>
+                <div class="grid grid-cols-4 gap-2 sm:gap-4 text-center">
+                    <div class="bg-[#123D32] text-[#D4AF7A] p-3 rounded-xl">
+                        <span id="timer-days" class="font-serif text-2xl sm:text-4xl font-bold block">00</span>
+                        <span class="text-[10px] sm:text-xs uppercase tracking-wider text-white">Days</span>
+                    </div>
+                    <div class="bg-[#123D32] text-[#D4AF7A] p-3 rounded-xl">
+                        <span id="timer-hours" class="font-serif text-2xl sm:text-4xl font-bold block">00</span>
+                        <span class="text-[10px] sm:text-xs uppercase tracking-wider text-white">Hours</span>
+                    </div>
+                    <div class="bg-[#123D32] text-[#D4AF7A] p-3 rounded-xl">
+                        <span id="timer-mins" class="font-serif text-2xl sm:text-4xl font-bold block">00</span>
+                        <span class="text-[10px] sm:text-xs uppercase tracking-wider text-white">Mins</span>
+                    </div>
+                    <div class="bg-[#123D32] text-[#D4AF7A] p-3 rounded-xl">
+                        <span id="timer-secs" class="font-serif text-2xl sm:text-4xl font-bold block">00</span>
+                        <span class="text-[10px] sm:text-xs uppercase tracking-wider text-white">Secs</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Venue Details -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left max-w-2xl mx-auto pt-2">
+                <div class="p-5 bg-white/5 rounded-2xl border border-[#D4AF7A]/30">
+                    <div class="flex items-center space-x-3 text-[#D4AF7A] mb-2">
+                        <i data-lucide="calendar" class="w-5 h-5"></i>
+                        <span class="font-bold text-sm">Date & Time</span>
+                    </div>
+                    <p id="card-date-str" class="text-sm font-serif">Saturday, November 28, 2026</p>
+                    <p class="text-xs text-gray-300">10:00 AM WAT</p>
+                </div>
+
+                <div class="p-5 bg-white/5 rounded-2xl border border-[#D4AF7A]/30">
+                    <div class="flex items-center space-x-3 text-[#D4AF7A] mb-2">
+                        <i data-lucide="map-pin" class="w-5 h-5"></i>
+                        <span class="font-bold text-sm">Location</span>
+                    </div>
+                    <p id="card-venue-name" class="text-sm font-serif">The Grand Royal Imperial Hall</p>
+                    <p id="card-venue-addr" class="text-xs text-gray-300">Asaba-Ebu Expressway, Asaba, Delta State, Nigeria</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <a href="#rsvp" class="w-full sm:w-auto px-8 py-3.5 bg-[#D4AF7A] text-[#123D32] font-bold rounded-full text-xs uppercase tracking-widest hover:bg-white transition-all shadow-lg text-center">
+                    RSVP Attendance
+                </a>
+                <button onclick="shareInvitationLink()" class="w-full sm:w-auto px-8 py-3.5 border border-[#D4AF7A] text-[#FFF9F0] font-semibold rounded-full text-xs uppercase tracking-widest hover:bg-[#D4AF7A]/10 transition-all flex items-center justify-center space-x-2">
+                    <i data-lucide="share-2" class="w-4 h-4"></i>
+                    <span>Share Invitation</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section id="story" class="py-20 px-4 bg-[#FFF9F0] border-t border-[#D4AF7A]/20">
+        <div class="max-w-5xl mx-auto">
+            <div class="text-center mb-16 space-y-3">
+                <span class="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">Our Journey</span>
+                <h2 class="font-serif text-3xl sm:text-5xl font-bold text-[#123D32]">Our Love Story</h2>
+                <div class="w-24 h-1 bg-[#D4AF7A] mx-auto rounded-full"></div>
+            </div>
+
+            <div class="relative border-l-2 border-[#D4AF7A]/40 ml-4 sm:ml-32 space-y-12">
+                <div class="relative pl-8 group">
+                    <div class="absolute -left-[17px] top-1.5 w-8 h-8 rounded-full bg-[#123D32] border-2 border-[#D4AF7A] text-[#D4AF7A] flex items-center justify-center shadow-lg group-hover:scale-125 transition-transform">
+                        <i data-lucide="heart" class="w-4 h-4 fill-current"></i>
+                    </div>
+                    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-[#D4AF7A]/30 space-y-2">
+                        <span class="text-xs font-bold text-[#D4AF7A] tracking-widest uppercase">2022</span>
+                        <h3 class="font-serif text-2xl font-bold text-[#123D32]">How We Met</h3>
+                        <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">Our paths crossed at a mutual friend's traditional celebration in Lagos. A casual conversation about music and Nigerian heritage turned into hours of laughter.</p>
+                    </div>
+                </div>
+
+                <div class="relative pl-8 group">
+                    <div class="absolute -left-[17px] top-1.5 w-8 h-8 rounded-full bg-[#123D32] border-2 border-[#D4AF7A] text-[#D4AF7A] flex items-center justify-center shadow-lg group-hover:scale-125 transition-transform">
+                        <i data-lucide="heart" class="w-4 h-4 fill-current"></i>
+                    </div>
+                    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-[#D4AF7A]/30 space-y-2">
+                        <span class="text-xs font-bold text-[#D4AF7A] tracking-widest uppercase">2023</span>
+                        <h3 class="font-serif text-2xl font-bold text-[#123D32]">First Memorable Date</h3>
+                        <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">A serene evening along the water, sharing traditional delicacies and discussing our dreams for the future.</p>
+                    </div>
+                </div>
+
+                <div class="relative pl-8 group">
+                    <div class="absolute -left-[17px] top-1.5 w-8 h-8 rounded-full bg-[#123D32] border-2 border-[#D4AF7A] text-[#D4AF7A] flex items-center justify-center shadow-lg group-hover:scale-125 transition-transform">
+                        <i data-lucide="heart" class="w-4 h-4 fill-current"></i>
+                    </div>
+                    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border border-[#D4AF7A]/30 space-y-2">
+                        <span class="text-xs font-bold text-[#D4AF7A] tracking-widest uppercase">2025</span>
+                        <h3 class="font-serif text-2xl font-bold text-[#123D32]">The Proposal</h3>
+                        <p class="text-xs sm:text-sm text-gray-600 leading-relaxed">Surrounded by candle lights and quiet beauty, Emeke got down on one knee and asked Rosemary to be his wife forever. With tears of joy, she said YES!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="couple" class="py-20 px-4 bg-white">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16 space-y-3">
+                <span class="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">The Main Characters</span>
+                <h2 class="font-serif text-3xl sm:text-5xl font-bold text-[#123D32]">Meet the Couple</h2>
+                <div class="w-24 h-1 bg-[#D4AF7A] mx-auto rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <!-- Groom -->
+                <div class="bg-[#FFF9F0] rounded-3xl p-8 border border-[#D4AF7A]/30 shadow-xl flex flex-col items-center text-center space-y-6">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=600" alt="Groom ALIDUNKWU EMEKE" class="w-44 h-44 rounded-full object-cover border-4 border-[#D4AF7A] shadow-2xl">
+                        <div class="absolute bottom-2 right-2 bg-[#123D32] text-[#D4AF7A] p-2 rounded-full border border-[#D4AF7A]">
+                            <i data-lucide="crown" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase tracking-widest text-gray-500 font-bold">The Groom</span>
+                        <h3 id="couple-groom-name" class="font-serif text-3xl font-bold text-[#123D32]">ALIDUNKWU EMEKE</h3>
+                    </div>
+                    <p class="text-xs sm:text-sm text-gray-600 leading-relaxed font-light">An accomplished professional with a passion for innovation, family, and tradition. Emeke's warm heart, strength, and infectious smile bring light to everyone around him.</p>
+                    <p class="font-serif italic text-[#123D32] font-semibold text-xs sm:text-sm bg-white p-4 rounded-xl border border-[#D4AF7A]/20">"Rosemary is my rock, my joy, and my answered prayer. I cannot wait to start forever with her."</p>
+                </div>
+
+                <!-- Bride -->
+                <div class="bg-[#FFF9F0] rounded-3xl p-8 border border-[#D4AF7A]/30 shadow-xl flex flex-col items-center text-center space-y-6">
+                    <div class="relative">
+                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=600" alt="Bride ALABI ROSEMARY" class="w-44 h-44 rounded-full object-cover border-4 border-[#D4AF7A] shadow-2xl">
+                        <div class="absolute bottom-2 right-2 bg-[#123D32] text-[#D4AF7A] p-2 rounded-full border border-[#D4AF7A]">
+                            <i data-lucide="crown" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-xs uppercase tracking-widest text-gray-500 font-bold">The Bride</span>
+                        <h3 id="couple-bride-name" class="font-serif text-3xl font-bold text-[#123D32]">ALABI ROSEMARY</h3>
+                    </div>
+                    <p class="text-xs sm:text-sm text-gray-600 leading-relaxed font-light">A woman of poise, intelligence, and grace. Rosemary's warmth and deep love for culture and family shine brightly in everything she accomplishes.</p>
+                    <p class="font-serif italic text-[#123D32] font-semibold text-xs sm:text-sm bg-white p-4 rounded-xl border border-[#D4AF7A]/20">"In Emeke, I found my best friend, my protector, and my soulmate. My heart is complete with him."</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="programme" class="py-20 px-4 bg-[#FFF9F0] border-t border-[#D4AF7A]/20">
+        <div class="max-w-5xl mx-auto space-y-16">
+            <div class="text-center space-y-3">
+                <span class="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">Schedule of Events</span>
+                <h2 class="font-serif text-3xl sm:text-5xl font-bold text-[#123D32]">Wedding Programme</h2>
+                <div class="w-24 h-1 bg-[#D4AF7A] mx-auto rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-2xl p-6 border border-[#D4AF7A]/30 shadow-lg space-y-4 text-center">
+                    <div class="inline-block px-4 py-1.5 bg-[#123D32] text-[#D4AF7A] font-bold text-xs rounded-full">10:00 AM</div>
+                    <h3 class="font-serif text-xl font-bold text-[#123D32]">Traditional Marriage</h3>
+                    <p class="text-xs font-semibold text-[#D4AF7A] uppercase tracking-wider">Igba Nkwu / Ikpo Nku</p>
+                    <p class="text-xs text-gray-600 leading-relaxed">Traditional rites, family blessings, and palm wine presentation in Delta State.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 border border-[#D4AF7A]/30 shadow-lg space-y-4 text-center">
+                    <div class="inline-block px-4 py-1.5 bg-[#123D32] text-[#D4AF7A] font-bold text-xs rounded-full">01:00 PM</div>
+                    <h3 class="font-serif text-xl font-bold text-[#123D32]">Church Blessing</h3>
+                    <p class="text-xs font-semibold text-[#D4AF7A] uppercase tracking-wider">Holy Matrimony</p>
+                    <p class="text-xs text-gray-600 leading-relaxed">Exchange of vows, solemnization, and wedding rings blessing.</p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 border border-[#D4AF7A]/30 shadow-lg space-y-4 text-center">
+                    <div class="inline-block px-4 py-1.5 bg-[#123D32] text-[#D4AF7A] font-bold text-xs rounded-full">03:30 PM</div>
+                    <h3 class="font-serif text-xl font-bold text-[#123D32]">Grand Reception</h3>
+                    <p class="text-xs font-semibold text-[#D4AF7A] uppercase tracking-wider">Celebration & Party</p>
+                    <p class="text-xs text-gray-600 leading-relaxed">Couple's grand entrance, dining, cutting of cake, and dancing!</p>
+                </div>
+            </div>
+
+            <!-- Dress Code Banner -->
+            <div class="bg-[#123D32] text-[#FFF9F0] rounded-3xl p-8 sm:p-12 border-2 border-[#D4AF7A] shadow-2xl text-center space-y-6">
+                <div class="inline-block p-3 bg-[#D4AF7A]/10 rounded-full text-[#D4AF7A]">
+                    <i data-lucide="gift" class="w-8 h-8"></i>
+                </div>
+                <h3 class="font-serif text-3xl font-bold text-[#D4AF7A]">Dress Code & AsoEbi Swatches</h3>
+                <p id="prog-dress-code" class="text-xs sm:text-sm text-gray-200 max-w-xl mx-auto">
+                    Royal Emerald & Champagne Gold — Traditional & Formal Elegance
+                </p>
+
+                <div class="flex justify-center items-center space-x-6 pt-2">
+                    <div class="flex flex-col items-center space-y-2">
+                        <div class="w-14 h-14 rounded-full bg-[#123D32] border-2 border-[#D4AF7A] shadow-md"></div>
+                        <span class="text-xs font-semibold text-[#D4AF7A]">Emerald Green</span>
+                    </div>
+                    <div class="flex flex-col items-center space-y-2">
+                        <div class="w-14 h-14 rounded-full bg-[#D4AF7A] border-2 border-white shadow-md"></div>
+                        <span class="text-xs font-semibold text-[#D4AF7A]">Champagne Gold</span>
+                    </div>
+                    <div class="flex flex-col items-center space-y-2">
+                        <div class="w-14 h-14 rounded-full bg-[#FFF9F0] border-2 border-[#D4AF7A] shadow-md"></div>
+                        <span class="text-xs font-semibold text-[#D4AF7A]">Warm Ivory</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="gallery" class="py-20 px-4 bg-white">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16 space-y-3">
+                <span class="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">Captured Moments</span>
+                <h2 class="font-serif text-3xl sm:text-5xl font-bold text-[#123D32]">Photo Gallery</h2>
+                <div class="w-24 h-1 bg-[#D4AF7A] mx-auto rounded-full"></div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div onclick="openLightbox('https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200', 'Royal Traditional Attire')" class="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-lg border border-[#D4AF7A]/20">
+                    <img src="https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=1200" alt="Gallery Photo 1" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#123D32]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
+                        <div>
+                            <span class="text-[10px] font-bold text-[#D4AF7A] uppercase tracking-widest">Traditional</span>
+                            <h4 class="font-serif text-lg font-bold text-white">Royal Traditional Attire</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div onclick="openLightbox('https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1200', 'Celebratory Moments')" class="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-lg border border-[#D4AF7A]/20">
+                    <img src="https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&q=80&w=1200" alt="Gallery Photo 2" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#123D32]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
+                        <div>
+                            <span class="text-[10px] font-bold text-[#D4AF7A] uppercase tracking-widest">Celebration</span>
+                            <h4 class="font-serif text-lg font-bold text-white">Celebratory Moments</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div onclick="openLightbox('https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1200', 'Pre-Wedding Romance')" class="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-lg border border-[#D4AF7A]/20">
+                    <img src="https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=1200" alt="Gallery Photo 3" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#123D32]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
+                        <div>
+                            <span class="text-[10px] font-bold text-[#D4AF7A] uppercase tracking-widest">Pre-Wedding</span>
+                            <h4 class="font-serif text-lg font-bold text-white">Pre-Wedding Romance</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="lightbox-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+        <button onclick="closeLightbox()" class="absolute top-6 right-6 text-white p-2 hover:text-[#D4AF7A]">
+            <i data-lucide="x" class="w-8 h-8"></i>
+        </button>
+        <div class="max-w-4xl max-h-[85vh] text-center">
+            <img id="lightbox-img" src="" alt="Zoomed view" class="max-w-full max-h-[80vh] object-contain rounded-xl border border-[#D4AF7A]/40 mx-auto">
+            <p id="lightbox-title" class="text-[#D4AF7A] font-serif text-xl mt-4"></p>
+        </div>
+    </div>
+
+    <section id="rsvp" class="py-20 px-4 bg-[#FFF9F0] border-t border-[#D4AF7A]/20">
+        <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
+            
+            <!-- RSVP Form -->
+            <div class="bg-white rounded-3xl p-8 sm:p-10 border border-[#D4AF7A]/30 shadow-xl space-y-6">
+                <div>
+                    <span class="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">Please Respond</span>
+                    <h2 class="font-serif text-3xl font-bold text-[#123D32]">Confirm Your Attendance</h2>
+                </div>
+
+                <form id="rsvp-form" onsubmit="handleRSVPSubmit(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Full Name *</label>
+                        <input id="rsvp-name" type="text" required placeholder="e.g. Chief Emeka Okafor" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#123D32] text-xs sm:text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Email *</label>
+                            <input id="rsvp-email" type="email" required placeholder="name@example.com" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#123D32] text-xs sm:text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Phone Number</label>
+                            <input id="rsvp-phone" type="tel" placeholder="+234..." class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#123D32] text-xs sm:text-sm">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Attendance Status</label>
+                            <select id="rsvp-status" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#123D32] text-xs sm:text-sm bg-white">
+                                <option value="Attending">Joyfully Attending</option>
+                                <option value="Declining">Regretfully Declining</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Number of Guests</label>
+                            <input id="rsvp-guests" type="number" min="1" max="5" value="1" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#123D32] text-xs sm:text-sm">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 bg-[#123D32] text-[#D4AF7A] font-bold rounded-xl text-xs uppercase tracking-widest shadow-lg hover:bg-[#D4AF7A] hover:text-[#123D32] transition-all">
+                        Submit RSVP
+                    </button>
+                </form>
+            </div>
+
+            <!-- Guestbook Wall -->
+            <div class="bg-white rounded-3xl p-8 sm:p-10 border border-[#D4AF7A]/30 shadow-xl space-y-6 flex flex-col justify-between">
+                <div>
+                    <span class="text-[#D4AF7A] uppercase tracking-widest text-xs font-bold">Warm Wishes</span>
+                    <h2 class="font-serif text-3xl font-bold text-[#123D32]">Guestbook</h2>
+                </div>
+
+                <div id="guestbook-list" class="space-y-4 max-h-72 overflow-y-auto pr-2">
+                    <!-- Dynamic wishes injected here -->
+                </div>
+
+                <form onsubmit="handlePostWish(event)" class="space-y-3 pt-2">
+                    <input id="wish-name" type="text" placeholder="Your Name" required class="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-[#123D32]">
+                    <textarea id="wish-text" rows="2" placeholder="Write your congratulations message..." required class="w-full px-4 py-2 rounded-xl border border-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-[#123D32]"></textarea>
+                    <button type="submit" class="w-full py-2.5 bg-[#D4AF7A] text-[#123D32] font-bold rounded-xl text-xs uppercase tracking-widest hover:bg-[#123D32] hover:text-[#D4AF7A] transition-all">
+                        Post Wish
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <div id="admin-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#D4AF7A] space-y-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b pb-4">
+                <h3 class="font-serif text-2xl font-bold text-[#123D32] flex items-center space-x-2">
+                    <i data-lucide="settings" class="w-6 h-6 text-[#D4AF7A]"></i>
+                    <span>Admin Control Panel</span>
+                </h3>
+                <button onclick="toggleAdminModal(false)" class="text-gray-400 hover:text-black">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-left">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Groom's Name</label>
+                        <input id="admin-groom" type="text" class="w-full px-3 py-2 border rounded-lg text-xs sm:text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Bride's Name</label>
+                        <input id="admin-bride" type="text" class="w-full px-3 py-2 border rounded-lg text-xs sm:text-sm">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Wedding ISO Date</label>
+                    <input id="admin-date" type="datetime-local" class="w-full px-3 py-2 border rounded-lg text-xs sm:text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Venue Name</label>
+                    <input id="admin-venue" type="text" class="w-full px-3 py-2 border rounded-lg text-xs sm:text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Venue Address</label>
+                    <input id="admin-address" type="text" class="w-full px-3 py-2 border rounded-lg text-xs sm:text-sm">
+                </div>
+
+                <div class="pt-4 border-t space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-bold text-xs sm:text-sm text-[#123D32]">Submitted RSVPs</h4>
+                        <button onclick="exportRSVPsCSV()" class="px-3 py-1 bg-green-700 text-white font-bold rounded text-[10px] uppercase">Export CSV</button>
+                    </div>
+                    <div id="admin-rsvp-list" class="max-h-36 overflow-y-auto space-y-2 border p-3 rounded-xl bg-gray-50 text-xs">
+                        <!-- RSVP entries injected -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t flex justify-end space-x-3">
+                <button onclick="saveAdminChanges()" class="px-6 py-2.5 bg-[#123D32] text-[#D4AF7A] font-bold rounded-lg text-xs uppercase">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col space-y-3">
+        <button id="audio-toggle-btn" onclick="toggleAudioSynth()" class="p-3.5 bg-[#123D32] text-[#D4AF7A] border border-[#D4AF7A]/60 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center">
+            <i data-lucide="volume-x" class="w-5 h-5"></i>
+        </button>
+        <button onclick="toggleAdminModal(true)" class="p-3.5 bg-[#D4AF7A] text-[#123D32] rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <footer class="bg-[#123D32] text-[#FFF9F0] py-12 px-4 border-t-2 border-[#D4AF7A] text-center space-y-4">
+        <div id="footer-names" class="font-serif text-2xl font-bold text-[#D4AF7A]">
+            ALIDUNKWU EMEKE & ALABI ROSEMARY
+        </div>
+        <p class="text-xs text-gray-300 max-w-md mx-auto">
+            Celebrating Love, Culture, and Tradition in Delta State, Nigeria.
+        </p>
+        <p class="text-[10px] text-gray-400">
+            © 2026 All Rights Reserved • Made with Love & Elegance
+        </p>
+    </footer>
+
+    <script>
+        // CONFIGURATION STATE
+        let weddingConfig = JSON.parse(localStorage.getItem('wedding_config_html')) || {
+            groomName: "ALIDUNKWU EMEKE",
+            brideName: "ALABI ROSEMARY",
+            weddingDate: "2026-11-28T10:00:00",
+            venueName: "The Grand Royal Imperial Hall",
+            venueAddress: "Asaba-Ebu Expressway, Asaba, Delta State, Nigeria",
+            dressCode: "Royal Emerald & Champagne Gold - Traditional & Formal Elegance"
+        };
+
+        // GUESTBOOK & RSVP STATE
+        let guestbookData = JSON.parse(localStorage.getItem('wedding_guestbook_html')) || [
+            { id: 1, name: "Chief Chukwuma", text: "Wishing Emeke and Rosemary a blissful union in Delta State!", likes: 12, time: "2 days ago" },
+            { id: 2, name: "Blessing Nkechi", text: "Congratulations to the couple! Can't wait for the grand reception!", likes: 8, time: "Yesterday" }
+        ];
+
+        let rsvpSubmissions = JSON.parse(localStorage.getItem('wedding_rsvps_html')) || [
+            { id: 1, name: "Chief Okafor", email: "okafor@example.com", phone: "+2348012345678", status: "Attending", guests: 2 }
+        ];
+
+        // GAME STATE
+        let currentStage = 1;
+        let stage1Tiles = "EMEKEROSEMARY".split('');
+        let stage1Shuffled = [];
+        let stage1Placed = [];
+        let matchedColorsCount = 0;
+
+        // AUDIO SYNTHESIZER (WEB AUDIO API)
+        let audioCtx = null;
+        let isAudioPlaying = false;
+        let audioInterval = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+        }
+
+        function toggleAudioSynth() {
+            initAudio();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            isAudioPlaying = !isAudioPlaying;
+            const btn = document.getElementById('audio-toggle-btn');
+
+            if (isAudioPlaying) {
+                btn.innerHTML = `<i data-lucide="volume-2" class="w-5 h-5 text-[#D4AF7A]"></i>`;
+                lucide.createIcons();
+                showToast("Ambient Wedding Harp Music Playing");
+                
+                const notes = [349.23, 440.00, 523.25, 659.25, 698.46, 880.00];
+                let idx = 0;
+                audioInterval = setInterval(() => {
+                    if (!isAudioPlaying) return;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(notes[idx % notes.length], audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.06, audioCtx.currentTime + 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 2.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 2.3);
+                    idx++;
+                }, 750);
+            } else {
+                btn.innerHTML = `<i data-lucide="volume-x" class="w-5 h-5 text-[#D4AF7A]"></i>`;
+                lucide.createIcons();
+                if (audioInterval) clearInterval(audioInterval);
+                showToast("Music Paused");
+            }
+        }
+
+        // TOAST NOTIFICATION
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-text').innerText = msg;
+            toast.classList.remove('translate-x-72');
+            setTimeout(() => {
+                toast.classList.add('translate-x-72');
+            }, 3000);
+        }
+
+        // INITIALIZE APP DOM
+        function updateUIFromConfig() {
+            document.getElementById('nav-brand').innerText = `${weddingConfig.groomName.split(' ')[0]} & ${weddingConfig.brideName.split(' ')[0]}`;
+            document.getElementById('hero-groom').innerText = weddingConfig.groomName;
+            document.getElementById('hero-bride').innerText = weddingConfig.brideName;
+            document.getElementById('card-couple-title').innerText = `${weddingConfig.groomName} & ${weddingConfig.brideName}`;
+            document.getElementById('card-venue-name').innerText = weddingConfig.venueName;
+            document.getElementById('card-venue-addr').innerText = weddingConfig.venueAddress;
+            document.getElementById('couple-groom-name').innerText = weddingConfig.groomName;
+            document.getElementById('couple-bride-name').innerText = weddingConfig.brideName;
+            document.getElementById('prog-dress-code').innerText = weddingConfig.dressCode;
+            document.getElementById('footer-names').innerText = `${weddingConfig.groomName} & ${weddingConfig.brideName}`;
+            
+            // Date formatting
+            const dateObj = new Date(weddingConfig.weddingDate);
+            document.getElementById('card-date-str').innerText = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        }
+
+        // STAGE 1 MINI-GAME LOGIC
+        function initStage1Tiles() {
+            stage1Shuffled = [...stage1Tiles].sort(() => Math.random() - 0.5);
+            stage1Placed = [];
+            renderStage1Tiles();
+        }
+
+        function renderStage1Tiles() {
+            const placedBox = document.getElementById('stage1-placed-container');
+            const tilesBox = document.getElementById('stage1-tiles-container');
+
+            placedBox.innerHTML = '';
+            tilesBox.innerHTML = '';
+
+            stage1Placed.forEach((char, idx) => {
+                const el = document.createElement('span');
+                el.className = 'w-9 h-11 sm:w-10 sm:h-12 flex items-center justify-center bg-[#123D32] text-[#D4AF7A] font-bold text-base sm:text-lg rounded-lg shadow-md';
+                el.innerText = char;
+                placedBox.appendChild(el);
+            });
+
+            for (let i = 0; i < stage1Tiles.length - stage1Placed.length; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'w-9 h-11 sm:w-10 sm:h-12 border-2 border-dashed border-[#D4AF7A]/50 rounded-lg flex items-center justify-center text-gray-300';
+                empty.innerText = '_';
+                placedBox.appendChild(empty);
+            }
+
+            stage1Shuffled.forEach((char, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-10 h-11 sm:w-11 sm:h-12 bg-[#D4AF7A] text-[#123D32] font-extrabold text-base sm:text-lg rounded-lg shadow-md hover:bg-[#123D32] hover:text-[#D4AF7A] transition-all transform hover:-translate-y-1';
+                btn.innerText = char;
+                btn.onclick = () => pickTile(char, idx);
+                tilesBox.appendChild(btn);
+            });
+        }
+
+        function pickTile(char, idx) {
+            stage1Placed.push(char);
+            stage1Shuffled.splice(idx, 1);
+            renderStage1Tiles();
+
+            if (stage1Placed.join('') === "EMEKEROSEMARY") {
+                showToast("Brilliant! You unlocked the couple's names!");
+                document.getElementById('stage1-next-btn').classList.remove('hidden');
+            }
+        }
+
+        function resetStage1() {
+            document.getElementById('stage1-next-btn').classList.add('hidden');
+            initStage1Tiles();
+        }
+
+        // STAGE SWITCHER
+        function goToStage(stageNum) {
+            currentStage = stageNum;
+            document.getElementById('stage-progress-text').innerText = `Progress: Stage ${stageNum} of 5`;
+            document.getElementById('stage-percent-text').innerText = `${(stageNum - 1) * 25}% Completed`;
+            document.getElementById('progress-bar-fill').style.width = `${stageNum * 20}%`;
+
+            for (let i = 1; i <= 5; i++) {
+                const el = document.getElementById(`game-stage-${i}`);
+                if (el) el.classList.add('hidden');
+            }
+            document.getElementById(`game-stage-${stageNum}`).classList.remove('hidden');
+
+            if (stageNum === 5) {
+                showToast("🎉 Congratulations! Full Wedding Invitation Unlocked!");
+            }
+        }
+
+        function skipToInvitation() {
+            goToStage(5);
+        }
+
+        function startDiscoveryGame() {
+            goToStage(1);
+        }
+
+        // STAGE 2
+        function selectDateGuess(dateStr, btn) {
+            document.querySelectorAll('.date-btn').forEach(b => {
+                b.classList.remove('border-[#123D32]', 'bg-[#123D32]', 'text-[#D4AF7A]');
+                b.classList.add('border-[#D4AF7A]/40', 'bg-[#FFF9F0]', 'text-[#123D32]');
+            });
+            btn.classList.add('border-[#123D32]', 'bg-[#123D32]', 'text-[#D4AF7A]');
+            if (dateStr === "2026-11-28") {
+                document.getElementById('stage2-success').classList.remove('hidden');
+                showToast("Correct Wedding Date Selected!");
+            }
+        }
+
+        // STAGE 3
+        function matchColor(hex, btn) {
+            btn.querySelector('div').classList.add('border-[#123D32]');
+            matchedColorsCount++;
+            if (matchedColorsCount >= 3) {
+                document.getElementById('stage3-success').classList.remove('hidden');
+                showToast("Official Color Palette Unlocked!");
+            }
+        }
+
+        // STAGE 4
+        function verifyVenueClue(e) {
+            e.preventDefault();
+            const val = document.getElementById('venue-answer-input').value.toLowerCase().trim();
+            if (val.includes('delta') || val.includes('asaba')) {
+                document.getElementById('stage4-success').classList.remove('hidden');
+                showToast("Correct! Location Unlocked: Delta State, Nigeria!");
+            } else {
+                showToast("Hint: Type 'Delta State' or 'Asaba'");
+            }
+        }
+
+        // COUNTDOWN TIMER
+        function startCountdownTimer() {
+            setInterval(() => {
+                const target = new Date(weddingConfig.weddingDate).getTime();
+                const now = new Date().getTime();
+                const diff = target - now;
+
+                if (diff > 0) {
+                    document.getElementById('timer-days').innerText = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    document.getElementById('timer-hours').innerText = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                    document.getElementById('timer-mins').innerText = Math.floor((diff / 1000 / 60) % 60);
+                    document.getElementById('timer-secs').innerText = Math.floor((diff / 1000) % 60);
+                }
+            }, 1000);
+        }
+
+        // LIGHTBOX MODAL
+        function openLightbox(url, title) {
+            document.getElementById('lightbox-img').src = url;
+            document.getElementById('lightbox-title').innerText = title;
+            document.getElementById('lightbox-modal').classList.remove('hidden');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox-modal').classList.add('hidden');
+        }
+
+        // RSVP SUBMISSION
+        function handleRSVPSubmit(e) {
+            e.preventDefault();
+            const newRsvp = {
+                id: Date.now(),
+                name: document.getElementById('rsvp-name').value,
+                email: document.getElementById('rsvp-email').value,
+                phone: document.getElementById('rsvp-phone').value,
+                status: document.getElementById('rsvp-status').value,
+                guests: document.getElementById('rsvp-guests').value
+            };
+            rsvpSubmissions.unshift(newRsvp);
+            localStorage.setItem('wedding_rsvps_html', JSON.stringify(rsvpSubmissions));
+            showToast("RSVP Successfully Recorded!");
+            document.getElementById('rsvp-form').reset();
+        }
+
+        // GUESTBOOK WISHES
+        function renderGuestbook() {
+            const list = document.getElementById('guestbook-list');
+            list.innerHTML = '';
+            guestbookData.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'p-4 rounded-xl bg-[#FFF9F0] border border-[#D4AF7A]/20 space-y-2';
+                card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-xs sm:text-sm text-[#123D32]">${item.name}</span>
+                        <span class="text-[10px] text-gray-400">${item.time}</span>
+                    </div>
+                    <p class="text-xs text-gray-600 italic">"${item.text}"</p>
+                    <button onclick="likeWish(${item.id})" class="flex items-center space-x-1 text-[11px] text-[#D4AF7A] hover:text-[#123D32]">
+                        <i data-lucide="heart" class="w-3.5 h-3.5 fill-current"></i>
+                        <span>${item.likes} Wishes</span>
+                    </button>
+                `;
+                list.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        function handlePostWish(e) {
+            e.preventDefault();
+            const name = document.getElementById('wish-name').value;
+            const text = document.getElementById('wish-text').value;
+            if (!name || !text) return;
+
+            const newMsg = { id: Date.now(), name, text, likes: 1, time: "Just now" };
+            guestbookData.unshift(newMsg);
+            localStorage.setItem('wedding_guestbook_html', JSON.stringify(guestbookData));
+            renderGuestbook();
+            document.getElementById('wish-name').value = '';
+            document.getElementById('wish-text').value = '';
+            showToast("Warm wish posted to the Guestbook!");
+        }
+
+        function likeWish(id) {
+            guestbookData = guestbookData.map(g => g.id === id ? { ...g, likes: g.likes + 1 } : g);
+            localStorage.setItem('wedding_guestbook_html', JSON.stringify(guestbookData));
+            renderGuestbook();
+        }
+
+        // ADMIN MODAL
+        function toggleAdminModal(show) {
+            const modal = document.getElementById('admin-modal');
+            if (show) {
+                document.getElementById('admin-groom').value = weddingConfig.groomName;
+                document.getElementById('admin-bride').value = weddingConfig.brideName;
+                document.getElementById('admin-date').value = weddingConfig.weddingDate.substring(0, 16);
+                document.getElementById('admin-venue').value = weddingConfig.venueName;
+                document.getElementById('admin-address').value = weddingConfig.venueAddress;
+                
+                // Render RSVPs in admin panel
+                const rList = document.getElementById('admin-rsvp-list');
+                rList.innerHTML = rsvpSubmissions.map(r => `
+                    <div class="flex justify-between items-center border-b pb-1">
+                        <span><strong>${r.name}</strong> (${r.guests} guests)</span>
+                        <span class="text-green-700 font-bold">${r.status}</span>
+                    </div>
+                `).join('');
+
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function saveAdminChanges() {
+            weddingConfig.groomName = document.getElementById('admin-groom').value;
+            weddingConfig.brideName = document.getElementById('admin-bride').value;
+            weddingConfig.weddingDate = document.getElementById('admin-date').value;
+            weddingConfig.venueName = document.getElementById('admin-venue').value;
+            weddingConfig.venueAddress = document.getElementById('admin-address').value;
+
+            localStorage.setItem('wedding_config_html', JSON.stringify(weddingConfig));
+            updateUIFromConfig();
+            toggleAdminModal(false);
+            showToast("Wedding details updated successfully!");
+        }
+
+        function exportRSVPsCSV() {
+            let csv = "Name,Email,Phone,Status,Guests\n";
+            rsvpSubmissions.forEach(r => {
+                csv += `"${r.name}","${r.email}","${r.phone}","${r.status}",${r.guests}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'wedding_rsvps.csv';
+            a.click();
+        }
+
+        function shareInvitationLink() {
+            navigator.clipboard.writeText(window.location.href);
+            showToast("Invitation link copied to clipboard!");
+        }
+
+        // GOLD CANVAS PARTICLES
+        function initHeroCanvas() {
+            const canvas = document.getElementById('hero-canvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+
+            function resize() {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            for (let i = 0; i < 40; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 2 + 1,
+                    d: Math.random() * 1 + 0.2
+                });
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'rgba(212, 175, 122, 0.4)';
+                ctx.beginPath();
+                for (let p of particles) {
+                    ctx.moveTo(p.x, p.y);
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2, true);
+                }
+                ctx.fill();
+
+                for (let p of particles) {
+                    p.y -= p.d;
+                    if (p.y < 0) {
+                        p.y = canvas.height;
+                        p.x = Math.random() * canvas.width;
+                    }
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        }
+
+        // MOBILE NAV MENU TOGGLE
+        document.getElementById('mobile-menu-btn').onclick = () => {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        };
+        document.querySelectorAll('.mobile-link').forEach(link => {
+            link.onclick = () => document.getElementById('mobile-menu').classList.add('hidden');
+        });
+
+        // INIT ON LOAD
+        window.onload = () => {
+            lucide.createIcons();
+            updateUIFromConfig();
+            initStage1Tiles();
+            startCountdownTimer();
+            renderGuestbook();
+            initHeroCanvas();
+        };
+    </script>
+</body>
+</html>
